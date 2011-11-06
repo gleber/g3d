@@ -32,3 +32,7 @@ function getShader(gl, id) {
 
     return shader;
 }
+
+function degToRad(degrees) {
+    return degrees * Math.PI / 180;
+}
