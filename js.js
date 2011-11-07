@@ -125,21 +125,23 @@ function G3TriangleModel(c) {
     this.indexes = [];
     this.prepared = false;
 
-    // this.addTriangle = function(vs, color) {
-    //     var fi = this.vertexes.length / 3;
-    //     for (var i = 0; i<3; i++) {
-    //         var v = vs[i];
-    //         var ind = Math.floor(this.vertexes.length / 3);
-    //         for (var j = 0; j < 3; j++){
-    //             this.vertexes.push(v[j]);
-    //         }
-    //         this.colors[ind] = color.slice();
-    //     }
-    //     var m = [0, 1, 2];
-    //     for (var x in m) {
-    //         this.indexes.push(fi + m[x]);
-    //     }
-    // }
+    this.addTriangle = function(vs, color) {
+        var fi = this.vertexes.length / 3;
+        for (var i = 0; i<3; i++) {
+            var v = vs[i];
+            var ind = Math.floor(this.vertexes.length / 3);
+            for (var j = 0; j < 3; j++){
+                this.vertexes.push(v[j]);
+            }
+            for (var j = 0; j < 4; j++){
+                this.colors[ind * 4 + j] = color[j];
+            }
+        }
+        var m = [0, 1, 2];
+        for (var x in m) {
+            this.indexes.push(fi + m[x]);
+        }
+    }
 
     this.addSquare = function(vs, color) {
         var fi = this.vertexes.length / 3;
@@ -154,7 +156,6 @@ function G3TriangleModel(c) {
             }
         }
         var m = [0, 1, 2, 0, 2, 3];
-        //var m = [0, 1, 2];
         for (var x in m) {
             this.indexes.push(fi + m[x]);
         }
@@ -256,8 +257,9 @@ function G3Object(c, vertices, colors) {
 }
 
 function initBuffers() {
+    var red   = [1,0,0,1];
     var green = [0,1,0,1];
-    var red = [1,0,0,1];
+    var blue  = [0,0,1,1];
     triangle = new G3Object(gl, [ [ 0.0,  1.0,  0.0],
                                   [-1.0, -1.0,  0.0],
                                   [ 1.0, -1.0,  0.0] ]);
@@ -325,6 +327,10 @@ function initBuffers() {
                               [ -1.0, -1.0,  1.0],
                               [ -1.0,  1.0,  1.0],
                               [ -1.0,  1.0, -1.0] ], red);
+
+    square_model2.addTriangle([ [  1,   1, 1],
+                                [ -1,  -1, 1],
+                                [  0,   0, 2] ], blue);
 
     square_model2.prepareBuffers();
 
