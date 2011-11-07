@@ -100,9 +100,9 @@ G3World.mv.pop = function() {
 };
 
 G3World.camera = {'x': 0,
-                  'y': 1,
-                  'z': 0,
-                  'pitch': -10,
+                  'y': 3,
+                  'z': -1,
+                  'pitch': 0,
                   'yaw': 0,
 
                   'yawSpeed': 0,
@@ -337,9 +337,9 @@ function initBuffers() {
 
     var square = new G3Object(gl);
     square.setModel(square_model);
-    square.translate([0, -3, -10]);
+    //square.translate([0, 0, 0]);
     square.rotate(90, 0, 0);
-    square.scale(106.5, 71.5, 1);
+    square.scale(10.65, 7.15, 1);
 
     G3World.objects.push(square);
 
@@ -437,6 +437,13 @@ function tick() {
     drawScene();
     handleKeys();
     animate();
+
+    document.getElementById('xpos').innerHTML = -G3World.camera.x + '';
+    document.getElementById('ypos').innerHTML = -G3World.camera.y + '';
+    document.getElementById('zpos').innerHTML = -G3World.camera.z + '';
+
+    document.getElementById('yaw').innerHTML = -G3World.camera.yaw + '';
+    document.getElementById('pitch').innerHTML = -G3World.camera.pitch + '';
 };
 
 function handleKeys() {
@@ -478,8 +485,10 @@ function animate() {
         var elapsed = timeNow - lastTime;
 
         if (camera.speed != 0) {
+
             camera.x -= Math.sin(degToRad(camera.yaw)) * camera.speed * elapsed;
-            camera.z -= Math.cos(degToRad(camera.yaw)) * camera.speed * elapsed;
+            camera.y += Math.sin(degToRad(camera.pitch)) * camera.speed * elapsed;
+            camera.z -= Math.cos(degToRad(camera.pitch)) * Math.cos(degToRad(camera.yaw)) * camera.speed * elapsed;
         }
 
         G3World.objects[2].rotate(0.1 * elapsed, 0.05 * elapsed, 0);
