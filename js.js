@@ -26,6 +26,10 @@ function initGL(canvas) {
         gl.viewportHeight = canvas.height;
 
         gl.ensureProjection = function() {
+            var normalMatrix = mat3.create();
+            mat4.toInverseMat3(G3World.mv.current, normalMatrix);
+            mat3.transpose(normalMatrix);
+            gl.uniformMatrix3fv(shaderProgram.nMatrixUniform, false, normalMatrix);
             gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
         }
 
@@ -52,11 +56,20 @@ function initShaders() {
     shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
     gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
 
+    shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "aVertexNormal");
+    gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
+
     shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
     gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
 
     shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
     shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+    shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
+
+    shaderProgram.ambientColorUniform = gl.getUniformLocation(shaderProgram, "uAmbientColor");
+    shaderProgram.lightingDirectionUniform = gl.getUniformLocation(shaderProgram, "uLightingDirection");
+    shaderProgram.directionalColorUniform = gl.getUniformLocation(shaderProgram, "uDirectionalColor");
+
 }
 
 
@@ -404,6 +417,17 @@ function drawScene() {
     mat4.rotate(G3World.mv.current, degToRad(-G3World.camera.pitch), [1, 0, 0]);
     mat4.rotate(G3World.mv.current, degToRad(-G3World.camera.yaw), [0, 1, 0]);
     mat4.translate(G3World.mv.current, [-G3World.camera.x, -G3World.camera.y, -G3World.camera.z]);
+
+    gl.uniform3f(shaderProgram.ambientColorUniform, 0.3, 0.3, 0.3);
+    
+    var lightingDirection = [-0.25, -0.25, -1];
+    var adjustedLD = vec3.create();
+    vec3.normalize(lightingDirection, adjustedLD);
+    vec3.scale(adjustedLD, -1);
+    gl.uniform3fv(shaderProgram.lightingDirectionUniform, adjustedLD);
+    
+    gl.uniform3f(shaderProgram.directionalColorUniform, 0.8, 0.8, 0.8);
+    
     for (var i = 0; i < G3World.objects.length; i++) {
         o = G3World.objects[i];
         G3World.mv.push();
