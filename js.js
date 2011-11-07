@@ -163,10 +163,11 @@ function G3Model (c, vertices, colors) {
 function G3TriangleModel(c) {
     this.vertexes = [];
     this.colors = [];
+    this.normals = [];
     this.indexes = [];
     this.prepared = false;
 
-    this.addTriangle = function(vs, color) {
+    this.addTriangle = function(vs, color, normal) {
         var fi = this.vertexes.length / 3;
         for (var i = 0; i<3; i++) {
             var v = vs[i];
@@ -177,6 +178,11 @@ function G3TriangleModel(c) {
             for (var j = 0; j < 4; j++){
                 this.colors[ind * 4 + j] = color[j];
             }
+            if (normal) {
+                for (var j = 0; j < 3; j++){
+                    this.normals[ind * 3 + j] = normal[j];
+                }
+            }
         }
         var m = [0, 1, 2];
         for (var x in m) {
@@ -184,7 +190,7 @@ function G3TriangleModel(c) {
         }
     }
 
-    this.addSquare = function(vs, color) {
+    this.addSquare = function(vs, color, normal) {
         var fi = this.vertexes.length / 3;
         for (var i = 0; i<4; i++) {
             var v = vs[i];
@@ -195,6 +201,11 @@ function G3TriangleModel(c) {
             for (var j = 0; j < 4; j++){
                 this.colors[ind * 4 + j] = color[j];
             }
+            if (normal) {
+                for (var j = 0; j < 3; j++){
+                    this.normals[ind * 3 + j] = normal[j];
+                }
+            }
         }
         var m = [0, 1, 2, 0, 2, 3];
         for (var x in m) {
@@ -204,6 +215,7 @@ function G3TriangleModel(c) {
 
     this.prepareBuffers = function() {
         this.vertexes_buf = c.createBuffer();
+        this.normals_buf = c.createBuffer();
         this.colors_buf = c.createBuffer();
         this.indexes_buf = c.createBuffer();
 
@@ -212,6 +224,11 @@ function G3TriangleModel(c) {
         this.vertexes_buf.itemSize = 3;
         this.vertexes_buf.numItems = Math.floor(this.vertexes.length / 3);
 
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.normals_buf);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.normals_buf), gl.STATIC_DRAW);
+        this.normals_buf.itemSize = 3;
+        this.normals_buf.numItems = Math.floor(this.normals.length / 3);
 
         this.colors_buf = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, this.colors_buf);
@@ -241,6 +258,9 @@ function G3TriangleModel(c) {
 
         gl.bindBuffer(gl.ARRAY_BUFFER, this.colors_buf);
         gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, this.colors_buf.itemSize, gl.FLOAT, false, 0, 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.normals_buf);
+        gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, this.normals_buf.itemSize, gl.FLOAT, false, 0, 0);
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexes_buf);
         gl.drawElements(gl.TRIANGLES, this.indexes_buf.numItems, gl.UNSIGNED_SHORT, 0);
@@ -328,48 +348,41 @@ function initBuffers() {
     square_model2.addSquare([ [-1.0, -1.0,  1.0],
                               [ 1.0, -1.0,  1.0],
                               [ 1.0,  1.0,  1.0],
-                              [-1.0,  1.0,  1.0]], red);
+                              [-1.0,  1.0,  1.0]], red, [0, 0, 1]);
 
     // top
     square_model2.addSquare([ [-1.0,  1.0, -1.0],
                               [-1.0,  1.0,  1.0],
                               [ 1.0,  1.0,  1.0],
-                              [ 1.0,  1.0, -1.0] ], red);
-
+                              [ 1.0,  1.0, -1.0] ], green, [0, 1, 0]);
 
     // Back face
     square_model2.addSquare([ [-1.0, -1.0, -1.0],
                               [-1.0,  1.0, -1.0],
                               [1.0,  1.0, -1.0],
-                              [1.0, -1.0, -1.0] ], green);
-
-    // Top face
-    square_model2.addSquare([ [-1.0,  1.0, -1.0],
-                              [-1.0,  1.0,  1.0],
-                              [1.0,  1.0,  1.0],
-                              [ 1.0,  1.0, -1.0] ], green);
+                              [1.0, -1.0, -1.0] ], green, [0, 0, -1]);
 
     // Bottom face
     square_model2.addSquare([ [ -1.0, -1.0, -1.0],
                               [ 1.0, -1.0, -1.0],
                               [ 1.0, -1.0,  1.0],
-                              [ -1.0, -1.0,  1.0] ], green);
+                              [ -1.0, -1.0,  1.0] ], red, [0, -1, 0]);
 
     // Right face
     square_model2.addSquare([ [ 1.0, -1.0, -1.0],
                               [ 1.0,  1.0, -1.0],
                               [ 1.0,  1.0,  1.0],
-                              [ 1.0, -1.0,  1.0] ], green);
+                              [ 1.0, -1.0,  1.0] ], green, [1, 0, 0]);
 
     // Left face
     square_model2.addSquare([ [ -1.0, -1.0, -1.0],
                               [ -1.0, -1.0,  1.0],
                               [ -1.0,  1.0,  1.0],
-                              [ -1.0,  1.0, -1.0] ], red);
+                              [ -1.0,  1.0, -1.0] ], red, [-1, 0, 0]);
 
     square_model2.addTriangle([ [  1,   1, 1],
                                 [ -1,  -1, 1],
-                                [  0,   0, 2] ], blue);
+                                [  0,   0, 2] ], blue, [1, -1, 0]);
 
     square_model2.prepareBuffers();
 
