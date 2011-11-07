@@ -1,4 +1,11 @@
+function assert(cond, str) {
+    if (!cond) {
+        alert(str);
+    }
+}
+
 var gl;
+
 function initGL(canvas) {
     try {
         gl = canvas.getContext("experimental-webgl");
@@ -11,9 +18,7 @@ function initGL(canvas) {
 
     } catch (e) {
     }
-    if (!gl) {
-        alert("Could not initialise WebGL, sorry :-(");
-    }
+    assert(gl, "Could not initialise WebGL, sorry :-(");
 }
 
 var shaderProgram;
@@ -27,9 +32,7 @@ function initShaders() {
     gl.attachShader(shaderProgram, fragmentShader);
     gl.linkProgram(shaderProgram);
 
-    if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-        alert("Could not initialise shaders");
-    }
+    assert(gl.getProgramParameter(shaderProgram, gl.LINK_STATUS), "Could not initialise shaders");
 
     gl.useProgram(shaderProgram);
 
@@ -44,17 +47,7 @@ function initShaders() {
 }
 
 
-var mvMatrix = mat4.create();
 var pMatrix = mat4.create();
-
-function setMatrixUniforms() {
-    gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
-    gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
-}
-
-
-var square;
-var triangle;
 
 function flatten(x, count, size) {
     count = count || x.length;
@@ -76,8 +69,11 @@ function defaultColorsMatrix(color, size) {
     return r;
 }
 
-function G3Object(c, vertices, colors) { 
-    this.pos = mat4.create();
+var G3World = {};
+G3World.objects = [];
+var triangle;
+
+function G3Model (c, vertices, colors) {
     this.buffer = c.createBuffer();
     this.colors = c.createBuffer();
 
@@ -100,8 +96,6 @@ function G3Object(c, vertices, colors) {
         this.setColors(colors);
     };
 
-    mat4.identity(this.pos);
-
     vCount = vertices.length;
     vSize = vertices[0].length;
 
@@ -114,18 +108,130 @@ function G3Object(c, vertices, colors) {
     this.buffer.numItems = vCount;
 
     this.setColors(colors);
-    
-    this.render = function() {        
 
+    this.render = function() {
         c.bindBuffer(c.ARRAY_BUFFER, this.buffer);
         c.vertexAttribPointer(shaderProgram.vertexPositionAttribute, this.buffer.itemSize, c.FLOAT, false, 0, 0);
 
         c.bindBuffer(c.ARRAY_BUFFER, this.colors);
         c.vertexAttribPointer(shaderProgram.vertexColorAttribute, this.colors.itemSize, c.FLOAT, false, 0, 0);
+        c.drawArrays(c.TRIANGLE_STRIP, 0, this.buffer.numItems);
+    }
+}
 
+function G3TriangleModel(c) {
+    this.vertexes = [];
+    this.colors = [];
+    this.indexes = [];
+    this.prepared = false;
+
+    // this.addTriangle = function(vs, color) {
+    //     var fi = this.vertexes.length / 3;
+    //     for (var i = 0; i<3; i++) {
+    //         var v = vs[i];
+    //         var ind = Math.floor(this.vertexes.length / 3);
+    //         for (var j = 0; j < 3; j++){
+    //             this.vertexes.push(v[j]);
+    //         }
+    //         this.colors[ind] = color.slice();
+    //     }
+    //     var m = [0, 1, 2];
+    //     for (var x in m) {
+    //         this.indexes.push(fi + m[x]);
+    //     }
+    // }
+
+    this.addSquare = function(vs, color) {
+        var fi = this.vertexes.length / 3;
+        for (var i = 0; i<4; i++) {
+            var v = vs[i];
+            var ind = Math.floor(this.vertexes.length / 3);
+            for (var j = 0; j < 3; j++){
+                this.vertexes.push(v[j]);
+            }
+            for (var j = 0; j < 4; j++){
+                this.colors[ind * 4 + j] = color[j];
+            }
+        }
+        var m = [0, 1, 2, 0, 2, 3];
+        //var m = [0, 1, 2];
+        for (var x in m) {
+            this.indexes.push(fi + m[x]);
+        }
+    }
+
+    this.prepareBuffers = function() {
+        this.vertexes_buf = c.createBuffer();
+        this.colors_buf = c.createBuffer();
+        this.indexes_buf = c.createBuffer();
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexes_buf);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertexes), gl.STATIC_DRAW);
+        this.vertexes_buf.itemSize = 3;
+        this.vertexes_buf.numItems = Math.floor(this.vertexes.length / 3);
+
+
+        this.colors_buf = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.colors_buf);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.colors), gl.STATIC_DRAW);
+        this.colors_buf.itemSize = 4;
+        this.colors_buf.numItems = Math.floor(this.vertexes.length / 3);
+
+        assert(this.vertexes_buf.numItems == this.colors_buf.numItems, "Incorrect number of colors!");
+
+
+        this.indexes_buf = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexes_buf);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.indexes), gl.STATIC_DRAW);
+        this.indexes_buf.itemSize = 1;
+        this.indexes_buf.numItems = this.indexes.length;
+        this.prepared = true;
+
+        console.log(this.vertexes);
+        console.log(this.colors);
+        console.log(this.indexes);
+    }
+
+
+    this.render = function() {
+        if (!this.prepared) {
+            this.prepareBuffers();
+        }
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexes_buf);
+        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, this.vertexes_buf.itemSize, gl.FLOAT, false, 0, 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.colors_buf);
+        gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, this.colors_buf.itemSize, gl.FLOAT, false, 0, 0);
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexes_buf);
+        gl.drawElements(gl.TRIANGLES, this.indexes_buf.numItems, gl.UNSIGNED_SHORT, 0);
+    }
+
+    this.setColor = function() {
+    }
+
+    this.setColors = function() {
+    }
+}
+
+function G3Object(c, vertices, colors) {
+    this.pos = mat4.create();
+
+    this.setModel = function(model) {
+        this.model = model;
+    }
+
+    if (vertices || colors) {
+        this.setModel(new G3Model(c, vertices, colors));
+    }
+    mat4.identity(this.pos);
+
+    this.render = function() {
         c.ensureProjection();
         c.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, this.pos);
-        c.drawArrays(c.TRIANGLE_STRIP, 0, this.buffer.numItems);
+
+        this.model.render();
     };
 
     this.translate = function(v) {
@@ -141,9 +247,17 @@ function G3Object(c, vertices, colors) {
     this.scale = function(xScale, yScale, zScale) {
         mat4.scale(this.pos, [xScale, yScale, zScale]);
     };
+    this.setColor = function(color) {
+        this.model.setColor(color);
+    }
+    this.setColors = function(colors) {
+        this.model.setColors(colors);
+    }
 }
 
 function initBuffers() {
+    var green = [0,1,0,1];
+    var red = [1,0,0,1];
     triangle = new G3Object(gl, [ [ 0.0,  1.0,  0.0],
                                   [-1.0, -1.0,  0.0],
                                   [ 1.0, -1.0,  0.0] ]);
@@ -153,15 +267,72 @@ function initBuffers() {
 
     triangle.translate([-1.5, 0.0, -7]);
     triangle.rotate(0, 0, 0);
+    G3World.objects.push(triangle);
 
-    square = new G3Object(gl, [ [ 1.0,  1.0,  0.0],
-                                [-1.0,  1.0,  0.0],
-                                [ 1.0, -1.0,  0.0],
-                                [-1.0, -1.0,  0.0] ]);
-    square.translate([0, -0.001, 0]);
+    var square_model = new G3Model(gl, [ [ 1.0,  1.0,  0.0],
+                                         [-1.0,  1.0,  0.0],
+                                         [ 1.0, -1.0,  0.0],
+                                         [-1.0, -1.0,  0.0] ]);
+    square_model.setColor([0, 1, 0, 1]);
+
+    var square = new G3Object(gl);
+    square.setModel(square_model);
+    square.translate([0, -3, -10]);
     square.rotate(90, 0, 0);
-    square.scale(106.5, 71.5, 1);
-    square.setColor([0, 1, 0, 1]);
+
+    G3World.objects.push(square);
+
+    var square_model2 = new G3TriangleModel(gl);
+    // front
+    square_model2.addSquare([ [-1.0, -1.0,  1.0],
+                              [ 1.0, -1.0,  1.0],
+                              [ 1.0,  1.0,  1.0],
+                              [-1.0,  1.0,  1.0]], red);
+
+    // top
+    square_model2.addSquare([ [-1.0,  1.0, -1.0],
+                              [-1.0,  1.0,  1.0],
+                              [ 1.0,  1.0,  1.0],
+                              [ 1.0,  1.0, -1.0] ], red);
+
+
+    // Back face
+    square_model2.addSquare([ [-1.0, -1.0, -1.0],
+                              [-1.0,  1.0, -1.0],
+                              [1.0,  1.0, -1.0],
+                              [1.0, -1.0, -1.0] ], green);
+
+    // Top face
+    square_model2.addSquare([ [-1.0,  1.0, -1.0],
+                              [-1.0,  1.0,  1.0],
+                              [1.0,  1.0,  1.0],
+                              [ 1.0,  1.0, -1.0] ], green);
+
+    // Bottom face
+    square_model2.addSquare([ [ -1.0, -1.0, -1.0],
+                              [ 1.0, -1.0, -1.0],
+                              [ 1.0, -1.0,  1.0],
+                              [ -1.0, -1.0,  1.0] ], green);
+
+    // Right face
+    square_model2.addSquare([ [ 1.0, -1.0, -1.0],
+                              [ 1.0,  1.0, -1.0],
+                              [ 1.0,  1.0,  1.0],
+                              [ 1.0, -1.0,  1.0] ], green);
+
+    // Left face
+    square_model2.addSquare([ [ -1.0, -1.0, -1.0],
+                              [ -1.0, -1.0,  1.0],
+                              [ -1.0,  1.0,  1.0],
+                              [ -1.0,  1.0, -1.0] ], red);
+
+    square_model2.prepareBuffers();
+
+    var square2 = new G3Object(gl);
+    square2.setModel(square_model2);
+    square2.translate([3, 3, -10]);
+
+    G3World.objects.push(square2);
 }
 
 function drawScene() {
@@ -170,8 +341,10 @@ function drawScene() {
 
     mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
 
-    triangle.render();
-    square.render();
+    for (var i = 0; i < G3World.objects.length; i++) {
+        o = G3World.objects[i];
+        o.render();
+    }
 }
 
 
@@ -201,16 +374,16 @@ function animate() {
     var timeNow = new Date().getTime();
     if (lastTime != 0) {
         var elapsed = timeNow - lastTime;
-        
+
         // if (speed != 0) {
         //     xPos -= Math.sin(degToRad(yaw)) * speed * elapsed;
         //     zPos -= Math.cos(degToRad(yaw)) * speed * elapsed;
         //     yPos = Math.sin(degToRad(joggingAngle)) / 20 + 0.4
         // }
-        
+
         // yaw += yawRate * elapsed;
         // pitch += pitchRate * elapsed;
-        triangle.rotate(0.1 * elapsed, 0, 0);
+        G3World.objects[2].rotate(0.1 * elapsed, 0.05 * elapsed, 0);
     }
     lastTime = timeNow;
 }
