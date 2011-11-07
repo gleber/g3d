@@ -6,6 +6,19 @@ function assert(cond, str) {
 
 var gl;
 
+var UI = {};
+UI.keys = {};
+
+function handleKeyDown(event) {
+    UI.keys[event.keyCode] = true;
+    console.log(event.keyCode);
+}
+
+function handleKeyUp(event) {
+    UI.keys[event.keyCode] = false;
+}
+
+
 function initGL(canvas) {
     try {
         gl = canvas.getContext("experimental-webgl");
@@ -71,6 +84,34 @@ function defaultColorsMatrix(color, size) {
 
 var G3World = {};
 G3World.objects = [];
+G3World.mv = {'current': mat4.create(),
+              'stack': []};
+mat4.identity(G3World.mv.current);
+G3World.mv.push = function() {
+    var copy = mat4.create();
+    mat4.set(G3World.mv.current, copy);
+    G3World.mv.stack.push(copy);
+};
+G3World.mv.pop = function() {
+    if (G3World.mv.stack.length == 0) {
+        throw "Invalid popMatrix!";
+    }
+    G3World.mv.current = G3World.mv.stack.pop();
+};
+
+G3World.camera = {'x': 0,
+                  'y': 1,
+                  'z': 0,
+                  'pitch': -10,
+                  'yaw': 0,
+
+                  'yawSpeed': 0,
+                  'pitchSpeed': 0,
+                  'speed': 0,
+
+                  'xSpeed': 0,
+                  'zSpeed': 0,
+                  'ySpeed': 0};
 var triangle;
 
 function G3Model (c, vertices, colors) {
@@ -187,10 +228,6 @@ function G3TriangleModel(c) {
         this.indexes_buf.itemSize = 1;
         this.indexes_buf.numItems = this.indexes.length;
         this.prepared = true;
-
-        console.log(this.vertexes);
-        console.log(this.colors);
-        console.log(this.indexes);
     }
 
 
@@ -229,8 +266,9 @@ function G3Object(c, vertices, colors) {
     mat4.identity(this.pos);
 
     this.render = function() {
+        mat4.multiply(G3World.mv.current, this.pos);
         c.ensureProjection();
-        c.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, this.pos);
+        c.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, G3World.mv.current);
 
         this.model.render();
     };
@@ -281,6 +319,7 @@ function initBuffers() {
     square.setModel(square_model);
     square.translate([0, -3, -10]);
     square.rotate(90, 0, 0);
+    square.scale(106.5, 71.5, 1);
 
     G3World.objects.push(square);
 
@@ -347,10 +386,19 @@ function drawScene() {
 
     mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
 
+    G3World.mv.push();
+
+    mat4.rotate(G3World.mv.current, degToRad(-G3World.camera.pitch), [1, 0, 0]);
+    mat4.rotate(G3World.mv.current, degToRad(-G3World.camera.yaw), [0, 1, 0]);
+    mat4.translate(G3World.mv.current, [-G3World.camera.x, -G3World.camera.y, -G3World.camera.z]);
     for (var i = 0; i < G3World.objects.length; i++) {
         o = G3World.objects[i];
+        G3World.mv.push();
         o.render();
+        G3World.mv.pop();
     }
+
+    G3World.mv.pop();
 }
 
 
@@ -364,6 +412,9 @@ function webGLStart() {
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
 
+    document.onkeydown = handleKeyDown;
+    document.onkeyup = handleKeyUp;
+
     tick();
 }
 
@@ -371,25 +422,57 @@ function webGLStart() {
 function tick() {
     requestAnimFrame(tick);
     drawScene();
+    handleKeys();
     animate();
 };
+
+function handleKeys() {
+    var camera = G3World.camera;
+    if (UI.keys[33]) {
+        // Page Up
+        camera.pitchSpeed = 0.1;
+    } else if (UI.keys[34]) {
+        // Page Down
+        camera.pitchSpeed = -0.1;
+    } else {
+        camera.pitchSpeed = 0;
+    }
+    
+    if (UI.keys[37] || UI.keys[65]) { // Left cursor key or A
+        camera.yawSpeed = 0.1;
+    } else if (UI.keys[39] || UI.keys[68]) { // Right cursor key or D
+        camera.yawSpeed= -0.1;
+    } else {
+        camera.yawSpeed = 0;
+    }
+    
+    if (UI.keys[38] || UI.keys[87]) { // Up cursor key or W
+        camera.speed = 0.003;
+    } else if (UI.keys[40] || UI.keys[83]) { // Down cursor key
+        camera.speed = -0.003;
+    } else {
+        camera.speed = 0;
+    }
+    
+}
 
 var lastTime = 0;
 
 function animate() {
+    var camera = G3World.camera;
     var timeNow = new Date().getTime();
     if (lastTime != 0) {
         var elapsed = timeNow - lastTime;
 
-        // if (speed != 0) {
-        //     xPos -= Math.sin(degToRad(yaw)) * speed * elapsed;
-        //     zPos -= Math.cos(degToRad(yaw)) * speed * elapsed;
-        //     yPos = Math.sin(degToRad(joggingAngle)) / 20 + 0.4
-        // }
+        if (camera.speed != 0) {
+            camera.x -= Math.sin(degToRad(camera.yaw)) * camera.speed * elapsed;
+            camera.z -= Math.cos(degToRad(camera.yaw)) * camera.speed * elapsed;
+        }
 
-        // yaw += yawRate * elapsed;
-        // pitch += pitchRate * elapsed;
         G3World.objects[2].rotate(0.1 * elapsed, 0.05 * elapsed, 0);
+        
+        camera.yaw += camera.yawSpeed * elapsed;
+        camera.pitch += camera.pitchSpeed * elapsed;
     }
     lastTime = timeNow;
 }
