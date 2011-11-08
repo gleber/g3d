@@ -70,6 +70,9 @@ function initShaders() {
     shaderProgram.lightingDirectionUniform = gl.getUniformLocation(shaderProgram, "uLightingDirection");
     shaderProgram.directionalColorUniform = gl.getUniformLocation(shaderProgram, "uDirectionalColor");
 
+    shaderProgram.pointLightingLocationUniform = gl.getUniformLocation(shaderProgram, "uPointLightingLocation");
+    shaderProgram.pointLightingColorUniform = gl.getUniformLocation(shaderProgram, "uPointLightingColor");
+
 }
 
 
@@ -344,8 +347,8 @@ function initBuffers() {
                          [0.0, 1.0, 0.0, 1.0],
                          [0.0, 0.0, 1.0, 1.0] ]);
 
-    triangle.translate([-1.5, 3, -3]);
-    triangle.rotate(0, 0, 0);
+    triangle.translate([0, 0, 0]);
+    triangle.scale(0.3, 0.3, 0.3);
     G3World.objects.push(triangle);
 
     var field_model = new G3TriangleModel(gl);
@@ -463,7 +466,7 @@ function drawScene() {
     mat4.rotate(G3World.mv.current, degToRad(-G3World.camera.yaw), [0, 1, 0]);
     mat4.translate(G3World.mv.current, [-G3World.camera.x, -G3World.camera.y, -G3World.camera.z]);
 
-    gl.uniform3f(shaderProgram.ambientColorUniform, 0.3, 0.3, 0.3);
+    gl.uniform3f(shaderProgram.ambientColorUniform, 0.2, 0.2, 0.2);
 
     var lightingDirection = [-0.25, -0.25, -1];
     var adjustedLD = vec3.create();
@@ -471,7 +474,10 @@ function drawScene() {
     vec3.scale(adjustedLD, -1);
     gl.uniform3fv(shaderProgram.lightingDirectionUniform, adjustedLD);
 
-    gl.uniform3f(shaderProgram.directionalColorUniform, 0.8, 0.8, 0.8);
+    gl.uniform3f(shaderProgram.directionalColorUniform, 0.4, 0.4, 0.4);
+
+    gl.uniform3f(shaderProgram.pointLightingLocationUniform, 0, 0, 0);
+    gl.uniform3f(shaderProgram.pointLightingColorUniform, 0.8, 0.1, 0.1);
 
     for (var i = 0; i < G3World.objects.length; i++) {
         o = G3World.objects[i];
