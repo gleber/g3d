@@ -112,11 +112,14 @@ G3World.mv.pop = function() {
     G3World.mv.current = G3World.mv.stack.pop();
 };
 
-G3World.camera = {'x': 0,
-                  'y': 3,
-                  'z': -1,
-                  'pitch': 0,
-                  'yaw': 0,
+// -4 18 14
+// -17 -48
+
+G3World.camera = {'x': -4,
+                  'y': 18,
+                  'z': 14,
+                  'yaw': -17,
+                  'pitch': -48,
 
                   'yawSpeed': 0,
                   'pitchSpeed': 0,
@@ -239,7 +242,7 @@ function G3TriangleModel(c) {
 
 
         gl.bindBuffer(gl.ARRAY_BUFFER, this.normals_buf);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.normals_buf), gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.normals), gl.STATIC_DRAW);
         this.normals_buf.itemSize = 3;
         this.normals_buf.numItems = Math.floor(this.normals.length / 3);
 
@@ -247,17 +250,20 @@ function G3TriangleModel(c) {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.colors_buf);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.colors), gl.STATIC_DRAW);
         this.colors_buf.itemSize = 4;
-        this.colors_buf.numItems = Math.floor(this.vertexes.length / 3);
+        this.colors_buf.numItems = Math.floor(this.colors.length / 4);
 
         assert(this.vertexes_buf.numItems == this.colors_buf.numItems, "Incorrect number of colors!");
-
+        assert(this.vertexes_buf.numItems == this.normals_buf.numItems, "Incorrect number of normals!");
 
         this.indexes_buf = gl.createBuffer();
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexes_buf);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.indexes), gl.STATIC_DRAW);
         this.indexes_buf.itemSize = 1;
         this.indexes_buf.numItems = this.indexes.length;
+
         this.prepared = true;
+
+        console.log(this.normals);
     }
 
 
@@ -338,30 +344,30 @@ function initBuffers() {
                          [0.0, 1.0, 0.0, 1.0],
                          [0.0, 0.0, 1.0, 1.0] ]);
 
-    triangle.translate([-1.5, 0.0, -7]);
+    triangle.translate([-1.5, 3, -3]);
     triangle.rotate(0, 0, 0);
     G3World.objects.push(triangle);
 
-    var square_model = new G3Model(gl, [ [ 1.0,  1.0,  0.0],
-                                         [-1.0,  1.0,  0.0],
-                                         [ 1.0, -1.0,  0.0],
-                                         [-1.0, -1.0,  0.0] ]);
-    square_model.setColor([0, 1, 0, 1]);
+    var field_model = new G3TriangleModel(gl);
+    field_model.addSquare([ [ 1.0,  1.0,  0.0],
+                            [-1.0,  1.0,  0.0],
+                            [-1.0, -1.0,  0.0],
+                            [ 1.0, -1.0,  0.0] ], green, [0, 1, 0]);
 
-    var square = new G3Object(gl);
-    square.setModel(square_model);
-    //square.translate([0, 0, 0]);
-    square.rotate(90, 0, 0);
-    square.scale(10.65, 7.15, 1);
+    var field = new G3Object(gl);
+    field.setModel(field_model);
+    //field.translate([0, 0, 0]);
+    field.rotate(90, 0, 0);
+    field.scale(10.65, 7.15, 1);
 
-    G3World.objects.push(square);
+    G3World.objects.push(field);
 
     var square_model2 = new G3TriangleModel(gl);
     // front
-    square_model2.addSquare([ [-1.0, -1.0,  1.0],
+    square_model2.addSquare([ [-1.0,  1.0,  1.0],
+                              [-1.0, -1.0,  1.0],
                               [ 1.0, -1.0,  1.0],
-                              [ 1.0,  1.0,  1.0],
-                              [-1.0,  1.0,  1.0]], red, [0, 0, 1]);
+                              [ 1.0,  1.0,  1.0] ], red, [0, 0, 1]);
 
     // top
     square_model2.addSquare([ [-1.0,  1.0, -1.0],
@@ -399,11 +405,50 @@ function initBuffers() {
 
     square_model2.prepareBuffers();
 
+
+    var bramka = new G3TriangleModel(gl);
+
+    // top
+    bramka.addSquare([ [-1.0,  1.0, -1.0],
+                              [-1.0,  1.0,  1.0],
+                              [ 1.0,  1.0,  1.0],
+                              [ 1.0,  1.0, -1.0] ], blue, [0, 1, 0]);
+
+    // Right face
+    bramka.addSquare([ [ 1.0, -1.0, -1.0],
+                              [ 1.0,  1.0, -1.0],
+                              [ 1.0,  1.0,  1.0],
+                              [ 1.0, -1.0,  1.0] ], blue, [1, 0, 0]);
+
+    // Left face
+    bramka.addSquare([ [ -1.0, -1.0, -1.0],
+                              [ -1.0, -1.0,  1.0],
+                              [ -1.0,  1.0,  1.0],
+                              [ -1.0,  1.0, -1.0] ], blue, [-1, 0, 0]);
+
+    bramka.prepareBuffers();
+
+
     var square2 = new G3Object(gl);
     square2.setModel(square_model2);
     square2.translate([3, 3, -10]);
 
     G3World.objects.push(square2);
+
+    var bramka1 = new G3Object(gl);
+    bramka1.setModel(bramka);
+    bramka1.translate([10.65, 1, 0]);
+    bramka1.rotate(0, 90, 0);
+    bramka1.scale(2, 1, 0.1);
+
+    var bramka2 = new G3Object(gl);
+    bramka2.setModel(bramka);
+    bramka2.translate([-10.65, 1, 0]);
+    bramka2.rotate(0, 90, 0);
+    bramka2.scale(2, 1, 0.1);
+
+    G3World.objects.push(bramka1);
+    G3World.objects.push(bramka2);
 }
 
 function drawScene() {
@@ -419,15 +464,15 @@ function drawScene() {
     mat4.translate(G3World.mv.current, [-G3World.camera.x, -G3World.camera.y, -G3World.camera.z]);
 
     gl.uniform3f(shaderProgram.ambientColorUniform, 0.3, 0.3, 0.3);
-    
+
     var lightingDirection = [-0.25, -0.25, -1];
     var adjustedLD = vec3.create();
     vec3.normalize(lightingDirection, adjustedLD);
     vec3.scale(adjustedLD, -1);
     gl.uniform3fv(shaderProgram.lightingDirectionUniform, adjustedLD);
-    
+
     gl.uniform3f(shaderProgram.directionalColorUniform, 0.8, 0.8, 0.8);
-    
+
     for (var i = 0; i < G3World.objects.length; i++) {
         o = G3World.objects[i];
         G3World.mv.push();
@@ -481,7 +526,7 @@ function handleKeys() {
     } else {
         camera.pitchSpeed = 0;
     }
-    
+
     if (UI.keys[37] || UI.keys[65]) { // Left cursor key or A
         camera.yawSpeed = 0.1;
     } else if (UI.keys[39] || UI.keys[68]) { // Right cursor key or D
@@ -489,15 +534,15 @@ function handleKeys() {
     } else {
         camera.yawSpeed = 0;
     }
-    
+
     if (UI.keys[38] || UI.keys[87]) { // Up cursor key or W
-        camera.speed = 0.003;
+        camera.speed = 0.03;
     } else if (UI.keys[40] || UI.keys[83]) { // Down cursor key
-        camera.speed = -0.003;
+        camera.speed = -0.03;
     } else {
         camera.speed = 0;
     }
-    
+
 }
 
 var lastTime = 0;
@@ -516,7 +561,7 @@ function animate() {
         }
 
         G3World.objects[2].rotate(0.1 * elapsed, 0.05 * elapsed, 0);
-        
+
         camera.yaw += camera.yawSpeed * elapsed;
         camera.pitch += camera.pitchSpeed * elapsed;
     }

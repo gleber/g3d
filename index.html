@@ -15,7 +15,8 @@
     varying vec4 vColor;
     varying vec3 vLightWeighting;
 
-    void main(void) {    
+    void main(void) {
+        //vColor.rgb *
         gl_FragColor = vec4(vColor.rgb * vLightWeighting, vColor.a);
         //gl_FragColor = vColor;
     }
@@ -35,23 +36,22 @@
     uniform vec3 uDirectionalColor;
 
     varying vec3 vLightWeighting;
-  
+
     varying vec4 vColor;
 
     void main(void) {
         gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
         vColor = aVertexColor;
 
-        //vec3 transformedNormal = uNMatrix * aVertexNormal;
-        //float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection), 0.0);
-        //vLightWeighting = uAmbientColor + uDirectionalColor * directionalLightWeighting;
-        vLightWeighting = uAmbientColor;
+        vec3 transformedNormal = uNMatrix * aVertexNormal;
+        float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection), 0.0);
+        vLightWeighting = uAmbientColor + uDirectionalColor * directionalLightWeighting;
     }
 </script>
 
 
-<script type="text/javascript" src="js.js"></script>
 <script type="text/javascript" src="util.js"></script>
+<script type="text/javascript" src="js.js"></script>
 
 
 </head>
@@ -63,7 +63,7 @@
     <canvas id="lesson01-canvas" style="border: none;" width="800" height="500"></canvas>
     <br/>
     <span id="xpos"></span> <span id="ypos"></span> <span id="zpos"></span> <br/>
-    <span id="yaw"></span> <span id="pitch"></span> 
+    <span id="yaw"></span> <span id="pitch"></span>
     <a href="http://learningwebgl.com/blog/?p=28">&lt;&lt; Back to Lesson 1</a><br />
 </body>
 
