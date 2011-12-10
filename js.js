@@ -179,6 +179,23 @@ function G3Model (c, vertices, colors) {
     }
 }
 
+function G3ComplexModel(c) {
+    this.models = [];
+    this.add = function(model) {
+        this.models.push(model)
+    };
+    this.prepareBuffers = function() {
+        for (var i = 0; i < this.models.length-1; i++) {
+            this.models[i].prepareBuffers();
+        }
+    };
+    this.render = function() {
+        for (var i = 0; i < this.models.length-1; i++) {
+            this.models[i].render();
+        }
+    };
+}
+
 function G3TriangleModel(c) {
     this.vertexes = [];
     this.colors = [];
