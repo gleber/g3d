@@ -184,6 +184,7 @@ function G3TriangleModel(c) {
     this.colors = [];
     this.normals = [];
     this.indexes = [];
+    this.texture_coords = [];
     this.prepared = false;
 
     this.addTriangle = function(vs, color, normal) {
@@ -229,6 +230,53 @@ function G3TriangleModel(c) {
         var m = [0, 1, 2, 0, 2, 3];
         for (var x in m) {
             this.indexes.push(fi + m[x]);
+        }
+    }
+
+    this.addSphere = function() {
+        var latitudeBands = 30;
+        var longitudeBands = 30;
+        var radius = 2;
+
+        for (var latNumber = 0; latNumber <= latitudeBands; latNumber++) {
+            var theta = latNumber * Math.PI / latitudeBands;
+            var sinTheta = Math.sin(theta);
+            var cosTheta = Math.cos(theta);
+
+            for (var longNumber = 0; longNumber <= longitudeBands; longNumber++) {
+                var phi = longNumber * 2 * Math.PI / longitudeBands;
+                var sinPhi = Math.sin(phi);
+                var cosPhi = Math.cos(phi);
+
+                var x = cosPhi * sinTheta;
+                var y = cosTheta;
+                var z = sinPhi * sinTheta;
+                var u = 1- (longNumber / longitudeBands);
+                var v = latNumber / latitudeBands;
+
+                this.normals.push(x);
+                this.normals.push(y);
+                this.normals.push(z);
+                this.texture_coords.push(u);
+                this.texture_coords.push(v);
+                this.vertexes.push(radius * x);
+                this.vertexes.push(radius * y);
+                this.vertexes.push(radius * z);
+            }
+        }
+
+       for (var latNumber = 0; latNumber < latitudeBands; latNumber++) {
+            for (var longNumber = 0; longNumber < longitudeBands; longNumber++) {
+                var first = (latNumber * (longitudeBands + 1)) + longNumber;
+                var second = first + longitudeBands + 1;
+                this.indexes.push(first);
+                this.indexes.push(second);
+                this.indexes.push(first + 1);
+
+                this.indexes.push(second);
+                this.indexes.push(second + 1);
+                this.indexes.push(first + 1);
+            }
         }
     }
 
