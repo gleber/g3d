@@ -64,6 +64,7 @@ function initShaders() {
 
     shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
     shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+    shaderProgram.camMatrixUniform = gl.getUniformLocation(shaderProgram, "uCamMatrix");
     shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
 
     shaderProgram.ambientColorUniform = gl.getUniformLocation(shaderProgram, "uAmbientColor");
@@ -531,6 +532,8 @@ function drawScene() {
     mat4.rotate(G3World.mv.current, degToRad(-G3World.camera.yaw), [0, 1, 0]);
     mat4.translate(G3World.mv.current, [-G3World.camera.x, -G3World.camera.y, -G3World.camera.z]);
 
+    gl.uniformMatrix4fv(shaderProgram.camMatrixUniform, false, G3World.mv.current);
+
     gl.uniform3f(shaderProgram.ambientColorUniform, 0.2, 0.2, 0.2);
 
     var lightingDirection = [-0.25, -0.25, -1];
@@ -541,7 +544,7 @@ function drawScene() {
 
     gl.uniform3f(shaderProgram.directionalColorUniform, 0.4, 0.4, 0.4);
 
-    gl.uniform3f(shaderProgram.pointLightingLocationUniform, 0, 0, 0);
+    gl.uniform3f(shaderProgram.pointLightingLocationUniform, 3, 0, 0);
     gl.uniform3f(shaderProgram.pointLightingColorUniform, 0.8, 0.1, 0.1);
 
     for (var i = 0; i < G3World.objects.length; i++) {

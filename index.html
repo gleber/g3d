@@ -7,63 +7,67 @@
 <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
 <script type="text/javascript" src="webgl-utils.js"></script>
 
-<script id="shader-fs" type="x-shader/x-fragment">
-    #ifdef GL_ES
-    precision highp float;
-    #endif
-
-    varying vec3 vTransformedNormal;
-    varying vec4 vPosition;
-
-    uniform vec3 uPointLightingLocation;
-    uniform vec3 uPointLightingColor;
-
-    varying vec4 vColor;
-    varying vec3 vADLightWeighting;
-
-    void main(void) {
-        vec3 lightDirection = normalize(uPointLightingLocation - vPosition.xyz);
-
-        float pointLightWeighting = max(dot(normalize(vTransformedNormal), lightDirection), 0.0);
-        vec3 lightWeighting = vADLightWeighting + uPointLightingColor * pointLightWeighting / 3.0;
-        
-        gl_FragColor = vec4(vColor.rgb * lightWeighting, vColor.a);
-        //gl_FragColor = vColor;
-    }
-</script>
 
 <script id="shader-vs" type="x-shader/x-vertex">
-    attribute vec3 aVertexPosition;
-    attribute vec3 aVertexNormal;
-    attribute vec4 aVertexColor;
 
-    uniform mat4 uMVMatrix;
-    uniform mat4 uPMatrix;
-    uniform mat3 uNMatrix;
+attribute vec3 aVertexPosition;
+attribute vec3 aVertexNormal;
+attribute vec4 aVertexColor;
 
-    uniform vec3 uAmbientColor;
-    uniform vec3 uLightingDirection;
-    uniform vec3 uDirectionalColor;
+uniform mat4 uMVMatrix;
+uniform mat4 uPMatrix;
+uniform mat3 uNMatrix;
 
-    uniform vec3 uPointLightingLocation;
-    uniform vec3 uPointLightingColor;
+varying vec4 vColor;
+varying vec3 vTransformedNormal;
+varying vec3 vPosition;
 
-    varying vec3 vADLightWeighting;
-    varying vec4 vPosition;
-    varying vec3 vTransformedNormal;
+void main(void)
+{
+    vColor = aVertexColor;
+    vPosition = vec3(uMVMatrix * vec4(aVertexPosition, 1.0));
+    vTransformedNormal = normalize(uNMatrix * aVertexNormal);
+    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+}
 
-    varying vec4 vColor;
+</script>
+    <script id="shader-fs" type="x-shader/x-fragment">
 
-    void main(void) {
-        vPosition = uMVMatrix * vec4(aVertexPosition, 1.0);
-        gl_Position = uPMatrix * vPosition;
-        vColor = aVertexColor;
+#ifdef GL_ES
+precision highp float;
+#endif
 
-        vTransformedNormal = uNMatrix * aVertexNormal;
-        float directionalLightWeighting = max(dot(vTransformedNormal, uLightingDirection), 0.0);
-        
-        vADLightWeighting = uAmbientColor + uDirectionalColor * directionalLightWeighting;
-    }
+uniform mat4 uMVMatrix;
+uniform mat4 uCamMatrix;
+uniform mat4 uPMatrix;
+uniform mat3 uNMatrix;
+
+varying vec4 vColor;
+varying vec3 vTransformedNormal;
+varying vec3 vPosition;
+
+uniform vec3 uAmbientColor;
+
+uniform vec3 uPointLightingLocation;
+uniform vec3 uPointLightingColor;
+
+void main(void) {
+
+    vec3 plpos = vec3(uCamMatrix * vec4(uPointLightingLocation, 1.0));
+    //vec3 plpos = uPointLightingLocation;
+
+    vec3 lightWeighting;
+    vec3 N = vTransformedNormal;
+    vec3 L = plpos - vPosition;
+
+    // lightWeighting = uAmbientColor + clamp(uPointLightingColor * max(dot(N, L), 0.0), 0.0, 1.0);
+    float ll = length(L);
+    float ll2 = 1.0 / ll;
+    // lightWeighting = uPointLightingColor * (1.0 / pow(ll, 10.0));
+
+    gl_FragColor = vec4(ll2, ll2, ll2, 1);
+}
+
 </script>
 
 
