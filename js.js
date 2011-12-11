@@ -1,8 +1,3 @@
-function assert(cond, str) {
-    if (!cond) {
-        alert(str);
-    }
-}
 
 var gl;
 
@@ -48,6 +43,7 @@ function initShaders() {
     gl.attachShader(shaderProgram, vertexShader);
     gl.attachShader(shaderProgram, fragmentShader);
     gl.linkProgram(shaderProgram);
+    gl.shaderProgram = shaderProgram;
 
     assert(gl.getProgramParameter(shaderProgram, gl.LINK_STATUS), "Could not initialise shaders");
 
@@ -74,6 +70,7 @@ function initShaders() {
     shaderProgram.pointLightingLocationUniform = gl.getUniformLocation(shaderProgram, "uPointLightingLocation");
     shaderProgram.pointLightingColorUniform = gl.getUniformLocation(shaderProgram, "uPointLightingColor");
 
+    shaderProgram.texturedUniform = gl.getUniformLocation(shaderProgram, "uTextured");
 }
 
 
@@ -119,11 +116,11 @@ G3World.mv.pop = function() {
 // -4 18 14
 // -17 -48
 
-G3World.camera = {'x': -4,
-                  'y': 18,
-                  'z': 14,
-                  'yaw': -17,
-                  'pitch': -48,
+G3World.camera = {'x': 0,
+                  'y': 28,
+                  'z': 0,
+                  'yaw': 0,
+                  'pitch': -90,
 
                   'yawSpeed': 0,
                   'pitchSpeed': 0,

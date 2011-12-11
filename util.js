@@ -1,3 +1,9 @@
+function assert(cond, str) {
+    if (!cond) {
+        alert(str);
+    }
+}
+
 function getShader(gl, id) {
     var shaderScript = document.getElementById(id);
     if (!shaderScript) {
