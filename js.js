@@ -421,7 +421,7 @@ function initBuffers() {
     field_model.addSquare([ [ 1.0,  1.0,  0.0],
                             [-1.0,  1.0,  0.0],
                             [-1.0, -1.0,  0.0],
-                            [ 1.0, -1.0,  0.0] ], green, [0, 1, 0]);
+                            [ 1.0, -1.0,  0.0] ], green, [0, 0, 1]);
 
     var field = new G3Object(gl);
     field.setModel(field_model);
@@ -544,7 +544,7 @@ function drawScene() {
 
     gl.uniform3f(shaderProgram.directionalColorUniform, 0.4, 0.4, 0.4);
 
-    gl.uniform3f(shaderProgram.pointLightingLocationUniform, 3, 0, 0);
+    gl.uniform3f(shaderProgram.pointLightingLocationUniform, 0, 1, 0);
     gl.uniform3f(shaderProgram.pointLightingColorUniform, 0.8, 0.1, 0.1);
 
     for (var i = 0; i < G3World.objects.length; i++) {
@@ -628,8 +628,7 @@ function animate() {
         var elapsed = timeNow - lastTime;
 
         if (camera.speed != 0) {
-
-            camera.x -= Math.sin(degToRad(camera.yaw)) * camera.speed * elapsed;
+            camera.x -= Math.cos(degToRad(camera.pitch)) * Math.sin(degToRad(camera.yaw)) * camera.speed * elapsed;
             camera.y += Math.sin(degToRad(camera.pitch)) * camera.speed * elapsed;
             camera.z -= Math.cos(degToRad(camera.pitch)) * Math.cos(degToRad(camera.yaw)) * camera.speed * elapsed;
         }
