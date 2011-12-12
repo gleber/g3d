@@ -51,12 +51,12 @@ function initShaders() {
 
     shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
     gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-
     shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "aVertexNormal");
     gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
-
     shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
     gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
+    shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
+    gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
 
     shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
     shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
@@ -71,30 +71,15 @@ function initShaders() {
     shaderProgram.pointLightingColorUniform = gl.getUniformLocation(shaderProgram, "uPointLightingColor");
 
     shaderProgram.texturedUniform = gl.getUniformLocation(shaderProgram, "uTextured");
-}
+
+    var dummy_tex = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, dummy_tex);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([]), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, 2, gl.FLOAT, false, 0, 0);
+ }
 
 
 var pMatrix = mat4.create();
-
-function flatten(x, count, size) {
-    count = count || x.length;
-    size = size || x[0].length;
-    var r = [];
-    for (var i = 0; i < count; i++) {
-        for (var j = 0; j < size; j++) {
-            r.push(x[i][j]);
-        }
-    }
-    return r;
-};
-
-function defaultColorsMatrix(color, size) {
-    var r = [];
-    for (var i = 0; i < size; i++) {
-        r.push(color.slice());
-    };
-    return r;
-}
 
 var G3World = {};
 G3World.objects = [];
@@ -129,8 +114,6 @@ G3World.camera = {'x': 0,
                   'xSpeed': 0,
                   'zSpeed': 0,
                   'ySpeed': 0};
-var triangle;
-
 
 function G3Object(c, vertices, colors) {
     this.pos = mat4.create();
@@ -177,16 +160,16 @@ function initBuffers() {
     var red   = [1,0,0,1];
     var green = [0,1,0,1];
     var blue  = [0,0,1,1];
-    triangle = new G3Object(gl, [ [ 0.0,  1.0,  0.0],
-                                  [-1.0, -1.0,  0.0],
-                                  [ 1.0, -1.0,  0.0] ]);
-    triangle.setColors([ [1.0, 0.0, 0.0, 1.0],
-                         [0.0, 1.0, 0.0, 1.0],
-                         [0.0, 0.0, 1.0, 1.0] ]);
 
-    triangle.translate([0, 0, 0]);
-    triangle.scale(0.3, 0.3, 0.3);
-    G3World.objects.push(triangle);
+    // var triangle = new G3Object(gl, [ [ 0.0,  1.0,  0.0],
+    //                               [-1.0, -1.0,  0.0],
+    //                               [ 1.0, -1.0,  0.0] ]);
+    // triangle.setColors([ [1.0, 0.0, 0.0, 1.0],
+    //                      [0.0, 1.0, 0.0, 1.0],
+    //                      [0.0, 0.0, 1.0, 1.0] ]);
+
+    // triangle.translate([0, 0, 0]);
+    // triangle.scale(0.3, 0.3, 0.3);
 
     var field_model = new G3TriangleModel(gl);
     field_model.addSquare([ [ 1.0,  1.0,  0.0],
@@ -196,99 +179,33 @@ function initBuffers() {
 
     var field = new G3Object(gl);
     field.setModel(field_model);
-    //field.translate([0, 0, 0]);
     field.rotate(90, 0, 0);
     field.scale(10.65, 7.15, 1);
 
+    // var cube = createCube();
+    // var cubeObj = new G3Object(gl);
+    // cubeObj.setModel(square_model2);
+    // cubeObj.translate([3, 3, -10]);
+
+
+    // var bramka = createBramka();
+    // var bramka1 = new G3Object(gl);
+    // bramka1.setModel(bramka);
+    // bramka1.translate([10.65, 1, 0]);
+    // bramka1.rotate(0, 90, 0);
+    // bramka1.scale(2, 1, 0.1);
+
+    // var bramka2 = new G3Object(gl);
+    // bramka2.setModel(bramka);
+    // bramka2.translate([-10.65, 1, 0]);
+    // bramka2.rotate(0, 90, 0);
+    // bramka2.scale(2, 1, 0.1);
+
+    // G3World.objects.push(triangle);
     G3World.objects.push(field);
-
-    var square_model2 = new G3TriangleModel(gl);
-    // front
-    square_model2.addSquare([ [-1.0,  1.0,  1.0],
-                              [-1.0, -1.0,  1.0],
-                              [ 1.0, -1.0,  1.0],
-                              [ 1.0,  1.0,  1.0] ], red, [0, 0, 1]);
-
-    // top
-    square_model2.addSquare([ [-1.0,  1.0, -1.0],
-                              [-1.0,  1.0,  1.0],
-                              [ 1.0,  1.0,  1.0],
-                              [ 1.0,  1.0, -1.0] ], green, [0, 1, 0]);
-
-    // Back face
-    square_model2.addSquare([ [-1.0, -1.0, -1.0],
-                              [-1.0,  1.0, -1.0],
-                              [1.0,  1.0, -1.0],
-                              [1.0, -1.0, -1.0] ], green, [0, 0, -1]);
-
-    // Bottom face
-    square_model2.addSquare([ [ -1.0, -1.0, -1.0],
-                              [ 1.0, -1.0, -1.0],
-                              [ 1.0, -1.0,  1.0],
-                              [ -1.0, -1.0,  1.0] ], red, [0, -1, 0]);
-
-    // Right face
-    square_model2.addSquare([ [ 1.0, -1.0, -1.0],
-                              [ 1.0,  1.0, -1.0],
-                              [ 1.0,  1.0,  1.0],
-                              [ 1.0, -1.0,  1.0] ], green, [1, 0, 0]);
-
-    // Left face
-    square_model2.addSquare([ [ -1.0, -1.0, -1.0],
-                              [ -1.0, -1.0,  1.0],
-                              [ -1.0,  1.0,  1.0],
-                              [ -1.0,  1.0, -1.0] ], red, [-1, 0, 0]);
-
-    square_model2.addTriangle([ [  1,   1, 1],
-                                [ -1,  -1, 1],
-                                [  0,   0, 2] ], blue, [1, -1, 0]);
-
-    square_model2.prepareBuffers();
-
-
-    var bramka = new G3TriangleModel(gl);
-
-    // top
-    bramka.addSquare([ [-1.0,  1.0, -1.0],
-                              [-1.0,  1.0,  1.0],
-                              [ 1.0,  1.0,  1.0],
-                              [ 1.0,  1.0, -1.0] ], blue, [0, 1, 0]);
-
-    // Right face
-    bramka.addSquare([ [ 1.0, -1.0, -1.0],
-                              [ 1.0,  1.0, -1.0],
-                              [ 1.0,  1.0,  1.0],
-                              [ 1.0, -1.0,  1.0] ], blue, [1, 0, 0]);
-
-    // Left face
-    bramka.addSquare([ [ -1.0, -1.0, -1.0],
-                              [ -1.0, -1.0,  1.0],
-                              [ -1.0,  1.0,  1.0],
-                              [ -1.0,  1.0, -1.0] ], blue, [-1, 0, 0]);
-
-    bramka.prepareBuffers();
-
-
-    var square2 = new G3Object(gl);
-    square2.setModel(square_model2);
-    square2.translate([3, 3, -10]);
-
-    G3World.objects.push(square2);
-
-    var bramka1 = new G3Object(gl);
-    bramka1.setModel(bramka);
-    bramka1.translate([10.65, 1, 0]);
-    bramka1.rotate(0, 90, 0);
-    bramka1.scale(2, 1, 0.1);
-
-    var bramka2 = new G3Object(gl);
-    bramka2.setModel(bramka);
-    bramka2.translate([-10.65, 1, 0]);
-    bramka2.rotate(0, 90, 0);
-    bramka2.scale(2, 1, 0.1);
-
-    G3World.objects.push(bramka1);
-    G3World.objects.push(bramka2);
+    //G3World.objects.push(cubeObj);
+    //G3World.objects.push(bramka1);
+    //G3World.objects.push(bramka2);
 }
 
 function drawScene() {
@@ -404,7 +321,7 @@ function animate() {
             camera.z -= Math.cos(degToRad(camera.pitch)) * Math.cos(degToRad(camera.yaw)) * camera.speed * elapsed;
         }
 
-        G3World.objects[2].rotate(0.1 * elapsed, 0.05 * elapsed, 0);
+        // G3World.objects[2].rotate(0.1 * elapsed, 0.05 * elapsed, 0);
 
         camera.yaw += camera.yawSpeed * elapsed;
         camera.pitch += camera.pitchSpeed * elapsed;
