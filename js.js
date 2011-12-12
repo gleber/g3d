@@ -5,7 +5,6 @@ UI.keys = {};
 
 function handleKeyDown(event) {
     UI.keys[event.keyCode] = true;
-    console.log(event.keyCode);
 }
 
 function handleKeyUp(event) {
@@ -103,31 +102,16 @@ function G3Object(c, program, vertices, colors) {
     };
 
     this.scale = function(xScale, yScale, zScale) {
+        yScale = yScale || xScale;
+        zScale = zScale || xScale;
         mat4.scale(this.pos, [xScale, yScale, zScale]);
     };
-    this.setColor = function(color) {
-        this.model.setColor(color);
-    }
-    this.setColors = function(colors) {
-        this.model.setColors(colors);
-    }
 }
 
 function initBuffers() {
     var red   = [1,0,0,1];
     var green = [0,1,0,1];
     var blue  = [0,0,1,1];
-
-    // var triangle = new G3Object(gl, shaderProgram,
-    //                             [ [ 0.0,  1.0,  0.0],
-    //                               [-1.0, -1.0,  0.0],
-    //                               [ 1.0, -1.0,  0.0] ]);
-    // triangle.setColors([ [1.0, 0.0, 0.0, 1.0],
-    //                      [0.0, 1.0, 0.0, 1.0],
-    //                      [0.0, 0.0, 1.0, 1.0] ]);
-
-    // triangle.translate([0, 0, 0]);
-    // triangle.scale(0.3, 0.3, 0.3);
 
     var field_model = new G3TriangleModel(gl, shaderProgram);
     field_model.addSquare([ [ 1.0,  1.0,  0.0],
@@ -140,30 +124,44 @@ function initBuffers() {
     field.rotate(90, 0, 0);
     field.scale(10.65, 7.15, 1);
 
-    // var cube = createCube();
-    // var cubeObj = new G3Object(gl);
-    // cubeObj.setModel(square_model2);
-    // cubeObj.translate([3, 3, -10]);
+    var bramka = new G3TriangleModel(gl, shaderProgram);
 
+    bramka.addSquare([ [-1.0,  1.0, -1.0],
+                       [-1.0,  1.0,  1.0],
+                       [ 1.0,  1.0,  1.0],
+                       [ 1.0,  1.0, -1.0] ], blue, [0, 1, 0]);
+    bramka.addSquare([ [ 1.0, -1.0, -1.0],
+                       [ 1.0,  1.0, -1.0],
+                       [ 1.0,  1.0,  1.0],
+                       [ 1.0, -1.0,  1.0] ], blue, [1, 0, 0]);
+    bramka.addSquare([ [-1.0, -1.0, -1.0],
+                       [-1.0, -1.0,  1.0],
+                       [-1.0,  1.0,  1.0],
+                       [-1.0,  1.0, -1.0] ], blue, [-1, 0, 0]);
 
-    // var bramka = createBramka();
-    // var bramka1 = new G3Object(gl);
-    // bramka1.setModel(bramka);
-    // bramka1.translate([10.65, 1, 0]);
-    // bramka1.rotate(0, 90, 0);
-    // bramka1.scale(2, 1, 0.1);
+    bramka.prepareBuffers();
 
-    // var bramka2 = new G3Object(gl);
-    // bramka2.setModel(bramka);
-    // bramka2.translate([-10.65, 1, 0]);
-    // bramka2.rotate(0, 90, 0);
-    // bramka2.scale(2, 1, 0.1);
+    var bramka1 = new G3Object(gl);
+    bramka1.setModel(bramka);
+    bramka1.translate([10.65, 1, 0]);
+    bramka1.rotate(0, 90, 0);
+    bramka1.scale(2, 1, 0.1);
 
-    // G3World.objects.push(triangle);
-    G3World.objects.push(field);
-    //G3World.objects.push(cubeObj);
-    //G3World.objects.push(bramka1);
-    //G3World.objects.push(bramka2);
+    var bramka2 = new G3Object(gl);
+    bramka2.setModel(bramka);
+    bramka2.translate([-10.65, 1, 0]);
+    bramka2.rotate(0, 90, 0);
+    bramka2.scale(2, 1, 0.1);
+
+    var skysphere_mod = new Skysphere(gl, "gigapixel-milky-way.gif")
+    var skysphere = new G3Object(gl);
+    skysphere.setModel(skysphere_mod);
+    skysphere.scale(83.57887771204935);
+
+    G3World.objects.push(skysphere);
+    // G3World.objects.push(field);
+    // G3World.objects.push(bramka1);
+    // G3World.objects.push(bramka2);
 }
 
 function drawScene() {

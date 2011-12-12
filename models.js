@@ -1,18 +1,23 @@
-function G3Texture(c, url) {
-    this.texture = gl.createTexture();
+function G3Texture(c, url, dummy_color) {
+    this.texture = c.createTexture();
     this.loading = false;
     this.loaded = false;
+
+    // c.bindTexture(c.TEXTURE_2D, this.texture);
+    // var pixel = new Uint8Array(dummy_color);
+    // c.texImage2D(c.TEXTURE_2D, 0, c.RGBA, 1, 1, 0, c.RGBA, pixel);
+
     var self = this;
     var image = new Image();
     image.onload = function () {
         self.handleLoadedTexture()
     }
-    this.load = function(url) {
+    this.prepared = function(url) {
         if (this.loading) return;
         image.src = url;
     }
     if (url) {
-        this.load(url);
+        this.prepared(url);
     }
     this.handleLoadedTexture = function() {
         c.pixelStorei(c.UNPACK_FLIP_Y_WEBGL, true);
@@ -24,11 +29,11 @@ function G3Texture(c, url) {
         c.bindTexture(c.TEXTURE_2D, null);
     }
     this.activate = function() {
-        if (!this.loaded) {
-            alert('not loaded!')
-        }
-        c.activeTexture(gl.TEXTURE0);
-        c.bindTexture(gl.TEXTURE_2D, this.texture);
+        // if (!this.loaded) {
+        //     alert('not loaded!')
+        // }
+        c.activeTexture(c.TEXTURE0);
+        c.bindTexture(c.TEXTURE_2D, this.texture);
     }
 }
 
@@ -154,6 +159,96 @@ function G3ComplexModel(c, program) {
     };
 }
 
+function G3Mesh(c, program) {
+    this.vertexes = [];
+    this.normals = [];
+    this.texture_coords = [];
+    this.indexes = [];
+
+    this.setSphere = function(radius) {
+        this.vertexes = [];
+        this.normals = [];
+        this.texture_coords = [];
+        this.indexes = [];
+        var latitudeBands = 100;
+        var longitudeBands = 100;
+        var radius = radius;
+        for (var latNumber = 0; latNumber <= latitudeBands; latNumber++) {
+            var theta = latNumber * Math.PI / latitudeBands;
+            var sinTheta = Math.sin(theta);
+            var cosTheta = Math.cos(theta);
+            for (var longNumber = 0; longNumber <= longitudeBands; longNumber++) {
+                var phi = longNumber * 2 * Math.PI / longitudeBands;
+                var sinPhi = Math.sin(phi);
+                var cosPhi = Math.cos(phi);
+                var x = cosPhi * sinTheta;
+                var y = cosTheta;
+                var z = sinPhi * sinTheta;
+                var u = 1 - (longNumber / longitudeBands);
+                var v = 1 - (latNumber / latitudeBands);
+                this.normals.push(x);
+                this.normals.push(y);
+                this.normals.push(z);
+                this.texture_coords.push(u);
+                this.texture_coords.push(v);
+                this.vertexes.push(radius * x);
+                this.vertexes.push(radius * y);
+                this.vertexes.push(radius * z);
+            }
+        }
+
+        for (var latNumber = 0; latNumber < latitudeBands; latNumber++) {
+            for (var longNumber = 0; longNumber < longitudeBands; longNumber++) {
+                var first = (latNumber * (longitudeBands + 1)) + longNumber;
+                var second = first + longitudeBands + 1;
+                this.indexes.push(first);
+                this.indexes.push(second);
+                this.indexes.push(first + 1);
+                this.indexes.push(second);
+                this.indexes.push(second + 1);
+                this.indexes.push(first + 1);
+            }
+        }
+
+        this.vertexes_buf = new G3Buffer(c, "aVertexPosition", Float32Array, this.vertexes, 3);
+        this.normals_buf = new G3Buffer(c, "aVertexNormal", Float32Array, this.normals, 3);
+        this.texture_coords_buf = new G3Buffer(c, "aTextureCoord", Float32Array, this.texture_coords, 2);
+        this.indexes_buf = new G3ElementBuffer(c, Uint16Array, this.indexes, 1, c.STREAM_DRAW);
+    };
+    this.prepare = function() {
+    };
+    this.render = function(p) {
+        p = p || program;
+        p.setAttribBuffer(this.vertexes_buf);
+        p.setAttribBuffer(this.normals_buf);
+        p.setAttribBuffer(this.texture_coords_buf);
+        p.render(this.indexes_buf);
+    }
+};
+
+function G3MeshModel(c, program) {
+    this.mesh = null;
+    this.texture = null;
+
+    this.setTexture = function(t) {
+        this.texture = t;
+    }
+    this.setMesh = function(m) {
+        this.mesh = m;
+    }
+    this.prepare = function() { this.mesh.prepare();
+                                this.texture.prepare(); };
+
+    this.render = function() {
+        program.use();
+
+        if (this.texture) {
+            this.texture.activate(c);
+        }
+        this.mesh.render(program);
+    }
+}
+
 function G3TriangleModel(c, program) {
     this.vertexes = [];
     this.colors = [];
@@ -208,61 +303,13 @@ function G3TriangleModel(c, program) {
         }
     }
 
-    this.addSphere = function() {
-        var latitudeBands = 30;
-        var longitudeBands = 30;
-        var radius = 2;
-
-        for (var latNumber = 0; latNumber <= latitudeBands; latNumber++) {
-            var theta = latNumber * Math.PI / latitudeBands;
-            var sinTheta = Math.sin(theta);
-            var cosTheta = Math.cos(theta);
-
-            for (var longNumber = 0; longNumber <= longitudeBands; longNumber++) {
-                var phi = longNumber * 2 * Math.PI / longitudeBands;
-                var sinPhi = Math.sin(phi);
-                var cosPhi = Math.cos(phi);
-
-                var x = cosPhi * sinTheta;
-                var y = cosTheta;
-                var z = sinPhi * sinTheta;
-                var u = 1- (longNumber / longitudeBands);
-                var v = latNumber / latitudeBands;
-
-                this.normals.push(x);
-                this.normals.push(y);
-                this.normals.push(z);
-                this.texture_coords.push(u);
-                this.texture_coords.push(v);
-                this.vertexes.push(radius * x);
-                this.vertexes.push(radius * y);
-                this.vertexes.push(radius * z);
-            }
-        }
-
-       for (var latNumber = 0; latNumber < latitudeBands; latNumber++) {
-            for (var longNumber = 0; longNumber < longitudeBands; longNumber++) {
-                var first = (latNumber * (longitudeBands + 1)) + longNumber;
-                var second = first + longitudeBands + 1;
-                this.indexes.push(first);
-                this.indexes.push(second);
-                this.indexes.push(first + 1);
-
-                this.indexes.push(second);
-                this.indexes.push(second + 1);
-                this.indexes.push(first + 1);
-            }
-        }
-    }
-
     this.prepareBuffers = function() {
         this.vertexes_buf = new G3Buffer(c, "aVertexPosition", Float32Array, this.vertexes, 3);
         this.normals_buf = new G3Buffer(c, "aVertexNormal", Float32Array, this.normals, 3);
         this.colors_buf = new G3Buffer(c, "aVertexColor", Float32Array, this.colors, 4);
         this.indexes_buf = new G3ElementBuffer(c, Uint16Array, this.indexes);
         this.prepared = true;
-   }
-
+    }
 
     this.render = function() {
         if (!this.prepared) {

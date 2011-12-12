@@ -155,7 +155,7 @@ function G3Program(c, vs, fs) {
         this.uniformLocs[name] = c.getUniformLocation(program, name);
         this.uniforms[name] = settr;
         if (info.type == c.SAMPLER_2D || info.type == c.SAMPLER_CUBE) {
-            textures[name] = settr;
+            this.textures[name] = settr;
         }
     }
 
