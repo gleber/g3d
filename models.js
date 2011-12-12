@@ -32,7 +32,7 @@ function G3Texture(c, url) {
     }
 }
 
-function G3Model (c, vertices, colors) {
+function G3Model (c, program, vertices, colors) {
     this.buffer = c.createBuffer();
     this.colors = c.createBuffer();
 
@@ -43,10 +43,9 @@ function G3Model (c, vertices, colors) {
             alert('Bad colors length!');
         }
         var colors2 = flatten(colors);
-        c.bindBuffer(c.ARRAY_BUFFER, this.colors);
-        c.bufferData(c.ARRAY_BUFFER, new Float32Array(colors2), c.STATIC_DRAW);
         this.colors.itemSize = 4;
         this.colors.numItems = vCount;
+        fillBuffer(c, this.colors, colors2, Float32Array);
     };
 
     this.setColor = function(color) {
@@ -60,26 +59,22 @@ function G3Model (c, vertices, colors) {
 
     var vertices2 = flatten(vertices, vCount, vSize);
 
-    c.bindBuffer(c.ARRAY_BUFFER, this.buffer);
-    c.bufferData(c.ARRAY_BUFFER, new Float32Array(vertices2), c.STATIC_DRAW);
-
     this.buffer.itemSize = vSize;
     this.buffer.numItems = vCount;
+    fillBuffer(c, this.buffer, vertices2, Float32Array);
 
     this.setColors(colors);
 
     this.render = function() {
-        c.uniform1i(shaderProgram.texturedUniform, false);
-        c.bindBuffer(c.ARRAY_BUFFER, this.buffer);
-        c.vertexAttribPointer(shaderProgram.vertexPositionAttribute, this.buffer.itemSize, c.FLOAT, false, 0, 0);
+        program.use();
+        program.setAttrib("aVertexPosition", this.buffer, this.buffer.itemSize, c.FLOAT);
+        program.setAttrib("aVertexColor", this.colors, this.colors.itemSize, c.FLOAT);
 
-        c.bindBuffer(c.ARRAY_BUFFER, this.colors);
-        c.vertexAttribPointer(shaderProgram.vertexColorAttribute, this.colors.itemSize, c.FLOAT, false, 0, 0);
         c.drawArrays(c.TRIANGLE_STRIP, 0, this.buffer.numItems);
     }
 }
 
-function G3FileModel(c) {
+function G3FileModel(c, program) {
     this.loaded = false;
     this.prepared = false;
 
@@ -111,73 +106,38 @@ function G3FileModel(c) {
     this.prepare = function() {
         if (this.prepared) alert('Prepare twice?!');
         if (!this.loaded) alert('Not yet loaded!');
-        this.vertexes_buf = c.createBuffer();
-        this.normals_buf = c.createBuffer();
-        this.texture_coords_buf = c.createBuffer();
-        this.indexes_buf = c.createBuffer();
+        this.vertexes_buf = new G3Buffer(c, "aVertexPosition", Float32Array, this.vertexes, 3);
+        this.normals_buf = new G3Buffer(c, "aVertexNormal", Float32Array, this.normals, 3);
+        this.indexes_buf = new G3ElementBuffer(c, Uint16Array, this.indexes);
 
         if (!this.texture) {
-            this.colors_buf = c.createBuffer();
-            c.bindBuffer(c.ARRAY_BUFFER, this.colors_buf);
-            c.bufferData(c.ARRAY_BUFFER, new Float32Array(this.colors), c.STATIC_DRAW);
-            this.colors_buf.itemSize = 4;
-            this.colors_buf.numItems = Math.floor(this.colors.length / 4);
+            this.colors_buf = new G3Buffer(c, "aVertexColor", Float32Array, this.colors, 4);
             assert(this.vertexes_buf.numItems == this.colors_buf.numItems, "Incorrect number of colors!");
-        }
-
-        c.bindBuffer(c.ARRAY_BUFFER, this.vertexes_buf);
-        c.bufferData(c.ARRAY_BUFFER, new Float32Array(this.vertexes), c.STATIC_DRAW);
-        this.vertexes_buf.itemSize = 3;
-        this.vertexes_buf.numItems = this.vertexes.length / 3;
-
-        c.bindBuffer(c.ARRAY_BUFFER, this.normals_buf);
-        c.bufferData(c.ARRAY_BUFFER, new Float32Array(this.normals), c.STATIC_DRAW);
-        this.normals_buf.itemSize = 3;
-        this.normals_buf.numItems = this.normals.length / 3;
-
-        c.bindBuffer(c.ELEMENT_ARRAY_BUFFER, this.indexes_buf);
-        c.bufferData(c.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.indexes), c.STATIC_DRAW);
-        this.indexes_buf.itemSize = 1;
-        this.indexes_buf.numItems = this.indexes.length;
-
-        if (this.texture) {
-            c.bindBuffer(c.ARRAY_BUFFER, this.texture_coords_buf);
-            c.bufferData(c.ARRAY_BUFFER, new Float32Array(this.texture_coords), c.STATIC_DRAW);
-            this.texture_coords_buf.itemSize = 2;
-            this.texture_coords_buf.numItems = this.texture_coords.length / 2;
+        } else {
+            this.texture_coords_buf = new G3Buffer(c, "aTextureCoord", Float32Array, this.texture_coords, 2);
         }
 
         this.prepared = true;
     }
     this.render = function() {
-        c.uniform1i(shaderProgram.texturedUniform, !!this.texture);
+        program.use();
 
-        c.bindBuffer(c.ARRAY_BUFFER, this.vertexes_buf);
-        c.vertexAttribPointer(shaderProgram.vertexPositionAttribute,
-                              this.vertexes_buf.itemSize, c.FLOAT, false, 0, 0);
+        program.setAttribBuffer(this.vertexes_buf);
+        program.setAttribBuffer(this.normals_buf);
 
         if (this.texture) {
             this.texture.activate(c);
-
-            c.bindBuffer(c.ARRAY_BUFFER, this.texture_coords_buf);
-            c.vertexAttribPointer(shaderProgram.textureCoordAttribute,
-                                  this.texture_coords_buf.itemSize, c.FLOAT, false, 0, 0);
+            program.setAttribBuffer(this.texture_coords_buf);
         } else {
             c.bindBuffer(c.ARRAY_BUFFER, this.colors_buf);
             c.vertexAttribPointer(shaderProgram.vertexColorAttribute, this.colors_buf.itemSize, c.FLOAT, false, 0, 0);
         }
 
-        c.bindBuffer(c.ARRAY_BUFFER, this.normals_buf);
-        c.vertexAttribPointer(shaderProgram.vertexNormalAttribute,
-                              this.normals_buf.itemSize, c.FLOAT, false, 0, 0);
-
-        c.bindBuffer(c.ELEMENT_ARRAY_BUFFER, this.indexes_buf);
-        c.drawElements(c.TRIANGLES,
-                       this.indexes_buf.numItems, c.UNSIGNED_SHORT, 0);
+        this.indexes_buf.render(program);
     }
 }
 
-function G3ComplexModel(c) {
+function G3ComplexModel(c, program) {
     this.models = [];
     this.add = function(model) {
         this.models.push(model)
@@ -188,13 +148,14 @@ function G3ComplexModel(c) {
         }
     };
     this.render = function() {
+        program.use();
         for (var i = 0; i < this.models.length-1; i++) {
             this.models[i].render();
         }
     };
 }
 
-function G3TriangleModel(c) {
+function G3TriangleModel(c, program) {
     this.vertexes = [];
     this.colors = [];
     this.normals = [];
@@ -296,58 +257,23 @@ function G3TriangleModel(c) {
     }
 
     this.prepareBuffers = function() {
-        this.vertexes_buf = c.createBuffer();
-        this.normals_buf = c.createBuffer();
-        this.colors_buf = c.createBuffer();
-        this.indexes_buf = c.createBuffer();
-
-        c.bindBuffer(c.ARRAY_BUFFER, this.vertexes_buf);
-        c.bufferData(c.ARRAY_BUFFER, new Float32Array(this.vertexes), c.STATIC_DRAW);
-        this.vertexes_buf.itemSize = 3;
-        this.vertexes_buf.numItems = Math.floor(this.vertexes.length / 3);
-
-
-        c.bindBuffer(c.ARRAY_BUFFER, this.normals_buf);
-        c.bufferData(c.ARRAY_BUFFER, new Float32Array(this.normals), c.STATIC_DRAW);
-        this.normals_buf.itemSize = 3;
-        this.normals_buf.numItems = Math.floor(this.normals.length / 3);
-
-        this.colors_buf = c.createBuffer();
-        c.bindBuffer(c.ARRAY_BUFFER, this.colors_buf);
-        c.bufferData(c.ARRAY_BUFFER, new Float32Array(this.colors), c.STATIC_DRAW);
-        this.colors_buf.itemSize = 4;
-        this.colors_buf.numItems = Math.floor(this.colors.length / 4);
-
-        assert(this.vertexes_buf.numItems == this.colors_buf.numItems, "Incorrect number of colors!");
-        assert(this.vertexes_buf.numItems == this.normals_buf.numItems, "Incorrect number of normals!");
-
-        this.indexes_buf = c.createBuffer();
-        c.bindBuffer(c.ELEMENT_ARRAY_BUFFER, this.indexes_buf);
-        c.bufferData(c.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.indexes), c.STATIC_DRAW);
-        this.indexes_buf.itemSize = 1;
-        this.indexes_buf.numItems = this.indexes.length;
-
+        this.vertexes_buf = new G3Buffer(c, "aVertexPosition", Float32Array, this.vertexes, 3);
+        this.normals_buf = new G3Buffer(c, "aVertexNormal", Float32Array, this.normals, 3);
+        this.colors_buf = new G3Buffer(c, "aVertexColor", Float32Array, this.colors, 4);
+        this.indexes_buf = new G3ElementBuffer(c, Uint16Array, this.indexes);
         this.prepared = true;
    }
 
 
     this.render = function() {
-        c.uniform1i(shaderProgram.texturedUniform, false);
         if (!this.prepared) {
             this.prepareBuffers();
         }
 
-        c.bindBuffer(c.ARRAY_BUFFER, this.vertexes_buf);
-        c.vertexAttribPointer(shaderProgram.vertexPositionAttribute, this.vertexes_buf.itemSize, c.FLOAT, false, 0, 0);
-
-        c.bindBuffer(c.ARRAY_BUFFER, this.colors_buf);
-        c.vertexAttribPointer(shaderProgram.vertexColorAttribute, this.colors_buf.itemSize, c.FLOAT, false, 0, 0);
-
-        c.bindBuffer(c.ARRAY_BUFFER, this.normals_buf);
-        c.vertexAttribPointer(shaderProgram.vertexNormalAttribute, this.normals_buf.itemSize, c.FLOAT, false, 0, 0);
-
-        c.bindBuffer(c.ELEMENT_ARRAY_BUFFER, this.indexes_buf);
-        c.drawElements(c.TRIANGLES, this.indexes_buf.numItems, c.UNSIGNED_SHORT, 0);
+        program.setAttribBuffer(this.vertexes_buf);
+        program.setAttribBuffer(this.colors_buf);
+        program.setAttribBuffer(this.normals_buf);
+        this.indexes_buf.render(program);
     }
 
     this.setColor = function() {

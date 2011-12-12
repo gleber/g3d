@@ -1,3 +1,9 @@
+function endsWith(str, postfix) {
+    var l = postfix.length;
+    var x = str.slice(-l);
+    return x == postfix;
+}
+
 function flatten(x, count, size) {
     count = count || x.length;
     size = size || x[0].length;

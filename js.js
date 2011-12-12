@@ -1,4 +1,3 @@
-
 var gl;
 
 var UI = {};
@@ -24,8 +23,8 @@ function initGL(canvas) {
             var normalMatrix = mat3.create();
             mat4.toInverseMat3(G3World.mv.current, normalMatrix);
             mat3.transpose(normalMatrix);
-            gl.uniformMatrix3fv(shaderProgram.nMatrixUniform, false, normalMatrix);
-            gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
+            shaderProgram.setUniform("uNMatrix", normalMatrix);
+            shaderProgram.setUniform("uPMatrix", pMatrix);
         }
 
     } catch (e) {
@@ -36,47 +35,9 @@ function initGL(canvas) {
 var shaderProgram;
 
 function initShaders() {
-    var fragmentShader = getShader(gl, "shader-fs");
-    var vertexShader = getShader(gl, "shader-vs");
-
-    shaderProgram = gl.createProgram();
-    gl.attachShader(shaderProgram, vertexShader);
-    gl.attachShader(shaderProgram, fragmentShader);
-    gl.linkProgram(shaderProgram);
-    gl.shaderProgram = shaderProgram;
-
-    assert(gl.getProgramParameter(shaderProgram, gl.LINK_STATUS), "Could not initialise shaders");
-
-    gl.useProgram(shaderProgram);
-
-    shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-    gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-    shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "aVertexNormal");
-    gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
-    shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
-    gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
-    shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
-    gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
-
-    shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
-    shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
-    shaderProgram.camMatrixUniform = gl.getUniformLocation(shaderProgram, "uCamMatrix");
-    shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
-
-    shaderProgram.ambientColorUniform = gl.getUniformLocation(shaderProgram, "uAmbientColor");
-    shaderProgram.lightingDirectionUniform = gl.getUniformLocation(shaderProgram, "uLightingDirection");
-    shaderProgram.directionalColorUniform = gl.getUniformLocation(shaderProgram, "uDirectionalColor");
-
-    shaderProgram.pointLightingLocationUniform = gl.getUniformLocation(shaderProgram, "uPointLightingLocation");
-    shaderProgram.pointLightingColorUniform = gl.getUniformLocation(shaderProgram, "uPointLightingColor");
-
-    shaderProgram.texturedUniform = gl.getUniformLocation(shaderProgram, "uTextured");
-
-    var dummy_tex = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, dummy_tex);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([]), gl.STATIC_DRAW);
-    gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, 2, gl.FLOAT, false, 0, 0);
- }
+    shaderProgram = new G3Program(gl, "colored-shader-vs", "colored-shader-fs");
+    shaderProgram.use();
+}
 
 
 var pMatrix = mat4.create();
@@ -115,23 +76,19 @@ G3World.camera = {'x': 0,
                   'zSpeed': 0,
                   'ySpeed': 0};
 
-function G3Object(c, vertices, colors) {
+function G3Object(c, program, vertices, colors) {
     this.pos = mat4.create();
 
     this.setModel = function(model) {
         this.model = model;
     }
 
-    if (vertices || colors) {
-        this.setModel(new G3Model(c, vertices, colors));
+    if (program && vertices) {
+        this.setModel(new G3Model(c, program, vertices, colors));
     }
     mat4.identity(this.pos);
 
     this.render = function() {
-        mat4.multiply(G3World.mv.current, this.pos);
-        c.ensureProjection();
-        c.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, G3World.mv.current);
-
         this.model.render();
     };
 
@@ -161,7 +118,8 @@ function initBuffers() {
     var green = [0,1,0,1];
     var blue  = [0,0,1,1];
 
-    // var triangle = new G3Object(gl, [ [ 0.0,  1.0,  0.0],
+    // var triangle = new G3Object(gl, shaderProgram,
+    //                             [ [ 0.0,  1.0,  0.0],
     //                               [-1.0, -1.0,  0.0],
     //                               [ 1.0, -1.0,  0.0] ]);
     // triangle.setColors([ [1.0, 0.0, 0.0, 1.0],
@@ -171,7 +129,7 @@ function initBuffers() {
     // triangle.translate([0, 0, 0]);
     // triangle.scale(0.3, 0.3, 0.3);
 
-    var field_model = new G3TriangleModel(gl);
+    var field_model = new G3TriangleModel(gl, shaderProgram);
     field_model.addSquare([ [ 1.0,  1.0,  0.0],
                             [-1.0,  1.0,  0.0],
                             [-1.0, -1.0,  0.0],
@@ -220,24 +178,25 @@ function drawScene() {
     mat4.rotate(G3World.mv.current, degToRad(-G3World.camera.yaw), [0, 1, 0]);
     mat4.translate(G3World.mv.current, [-G3World.camera.x, -G3World.camera.y, -G3World.camera.z]);
 
-    gl.uniformMatrix4fv(shaderProgram.camMatrixUniform, false, G3World.mv.current);
-
-    gl.uniform3f(shaderProgram.ambientColorUniform, 0.2, 0.2, 0.2);
+    shaderProgram.setUniform("uCamMatrix", G3World.mv.current);
+    shaderProgram.setUniform("uAmbientColor", [0.2, 0.2, 0.2]);
 
     var lightingDirection = [-0.25, -0.25, -1];
     var adjustedLD = vec3.create();
     vec3.normalize(lightingDirection, adjustedLD);
     vec3.scale(adjustedLD, -1);
-    gl.uniform3fv(shaderProgram.lightingDirectionUniform, adjustedLD);
-
-    gl.uniform3f(shaderProgram.directionalColorUniform, 0.4, 0.4, 0.4);
-
-    gl.uniform3f(shaderProgram.pointLightingLocationUniform, 0, 1, 0);
-    gl.uniform3f(shaderProgram.pointLightingColorUniform, 0.8, 0.1, 0.1);
+    shaderProgram.setUniform("uLightingDirection", adjustedLD);
+    shaderProgram.setUniform("uDirectionalColor", [0.4, 0.4, 0.4]);
+    shaderProgram.setUniform("uPointLightingLocation", [0, 1, 0]);
+    shaderProgram.setUniform("uPointLightingDiffuseColor", [ 0.8, 0.8, 0.8]);
+    shaderProgram.setUniform("uPointLightingSpecularColor", [ 0.8, 0.8, 0.8]);
 
     for (var i = 0; i < G3World.objects.length; i++) {
         o = G3World.objects[i];
         G3World.mv.push();
+        mat4.multiply(G3World.mv.current, o.pos);
+        gl.ensureProjection();
+        shaderProgram.setUniform("uMVMatrix", G3World.mv.current);
         o.render();
         G3World.mv.pop();
     }
