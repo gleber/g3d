@@ -129,11 +129,10 @@ function G3FileModel(c, program) {
             this.texture.activate(c);
             program.setAttribBuffer(this.texture_coords_buf);
         } else {
-            c.bindBuffer(c.ARRAY_BUFFER, this.colors_buf);
-            c.vertexAttribPointer(shaderProgram.vertexColorAttribute, this.colors_buf.itemSize, c.FLOAT, false, 0, 0);
+            program.setAttribBuffer(this.colors_buf);
         }
 
-        this.indexes_buf.render(program);
+        program.render(this.indexes_buf);
     }
 }
 
@@ -273,7 +272,7 @@ function G3TriangleModel(c, program) {
         program.setAttribBuffer(this.vertexes_buf);
         program.setAttribBuffer(this.colors_buf);
         program.setAttribBuffer(this.normals_buf);
-        this.indexes_buf.render(program);
+        program.render(this.indexes_buf);
     }
 
     this.setColor = function() {

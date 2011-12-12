@@ -43,7 +43,7 @@ function G3Buffer(c, name, dt, values, stride) {
 
     this.stride = stride;
     this.length = values.length / stride;
-    fillBuffer(c, this.buffer, values, dt);
+    fillAnyBuffer(c, this.buffer_type, this.buffer, values, dt);
 }
 
 function G3ElementBuffer(c, dt, values, stride) {
@@ -54,11 +54,5 @@ function G3ElementBuffer(c, dt, values, stride) {
 
     this.stride = stride;
     this.length = values.length / stride;
-    fillElementBuffer(c, this.buffer, values, dt);
-
-    this.render = function(program, primitive_type) {
-        primitive_type = primitive_type || c.TRIANGLES;
-        program.setAttribBuffer(this);
-        c.drawElements(primitive_type, this.stride, this.element_type, 0);
-    }
+    fillAnyBuffer(c, this.buffer_type, this.buffer, values, dt);
 }

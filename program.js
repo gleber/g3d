@@ -173,10 +173,11 @@ function G3Program(c, vs, fs) {
         }
     }
 
-    this.setAttrib = function(name, array, stride, element_type) {
-        c.bindBuffer(c.ARRAY_BUFFER, array);
-        c.vertexAttribPointer(this.attribLocs[name], stride, element_type, false, 0, 0);
-   }
+    this.render = function(b, primitive_type) {
+        primitive_type = primitive_type || c.TRIANGLES;
+        c.bindBuffer(b.buffer_type, b.buffer);
+        c.drawElements(primitive_type, b.length, b.element_type, 0);
+    }
 
     this.use = function() {
         c.useProgram(this.program);
