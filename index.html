@@ -10,8 +10,6 @@
 
 <script id="colored-shader-vs" type="x-shader/x-vertex">
 
-uniform bool uTextured;
-
 attribute vec3 aVertexPosition;
 attribute vec3 aVertexNormal;
 attribute vec4 aVertexColor;
@@ -36,36 +34,6 @@ void main(void)
 
 </script>
 
-
-<script id="textured-shader-vs" type="x-shader/x-vertex">
-
-attribute vec3 aVertexPosition;
-attribute vec3 aVertexNormal;
-attribute vec2 aTextureCoord;
-
-uniform mat4 uMVMatrix;
-uniform mat4 uPMatrix;
-uniform mat3 uNMatrix;
-
-varying vec2 vTextureCoord;
-varying vec3 vTransformedNormal;
-varying vec3 vNormal;
-varying vec3 vPosition;
-
-void main(void)
-{
-    vPosition = vec3(uMVMatrix * vec4(aVertexPosition, 1.0));
-    vTransformedNormal = uNMatrix * aVertexNormal;
-    vTextureCoord = aTextureCoord;
-    vNormal = aVertexNormal;
-    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-}
-
-</script>
-
-
-
-
     <script id="colored-shader-fs" type="x-shader/x-fragment">
 
 #ifdef GL_ES
@@ -85,7 +53,6 @@ varying vec3 vPosition;
 uniform vec3 uAmbientColor;
 
 uniform float uMaterialShininess;
-uniform sampler2D uSampler;
 
 uniform vec3 uPointLightingLocation;
 uniform vec3 uPointLightingSpecularColor;

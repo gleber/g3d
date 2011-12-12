@@ -35,24 +35,28 @@ function inferElementType(dt) {
     return t;
 }
 
-function G3Buffer(c, name, dt, values, stride) {
+function G3Buffer(c, name, dt, values, isize) {
     this.name = name;
     this.buffer = c.createBuffer();
     this.buffer_type = c.ARRAY_BUFFER;
     this.element_type = inferElementType(dt);
 
-    this.stride = stride;
-    this.length = values.length / stride;
-    fillAnyBuffer(c, this.buffer_type, this.buffer, values, dt);
+    this.isize = isize;
+    this.length = values.length / isize;
+
+    c.bindBuffer(this.buffer_type, this.buffer);
+    c.bufferData(this.buffer_type, new dt(values), c.STATIC_DRAW);
 }
 
-function G3ElementBuffer(c, dt, values, stride) {
-    stride = stride || 1;
+function G3ElementBuffer(c, dt, values, isize) {
+    isize = isize || 1;
     this.buffer = c.createBuffer();
     this.buffer_type = c.ELEMENT_ARRAY_BUFFER;
     this.element_type = inferElementType(dt);
 
-    this.stride = stride;
-    this.length = values.length / stride;
-    fillAnyBuffer(c, this.buffer_type, this.buffer, values, dt);
+    this.isize = isize;
+    this.length = values.length / isize;
+
+    c.bindBuffer(this.buffer_type, this.buffer);
+    c.bufferData(this.buffer_type, new dt(values), c.STATIC_DRAW);
 }

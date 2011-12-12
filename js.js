@@ -62,11 +62,11 @@ G3World.mv.pop = function() {
 // -4 18 14
 // -17 -48
 
-G3World.camera = {'x': 0,
-                  'y': 28,
-                  'z': 0,
-                  'yaw': 0,
-                  'pitch': -90,
+G3World.camera = {'x': -4,
+                  'y': 18,
+                  'z': 14,
+                  'yaw': -17,
+                  'pitch': -48,
 
                   'yawSpeed': 0,
                   'pitchSpeed': 0,

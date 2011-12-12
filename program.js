@@ -21,12 +21,12 @@ function G3Program(c, vs, fs) {
         if (info.size != 1) {
             throw("arrays of attribs not handled");
         }
-        return function(b) {
-            c.bindBuffer(c.ARRAY_BUFFER, b.buffer());
-            c.enableVertexAttribArray(index);
-            c.vertexAttribPointer(
-                index, b.numComponents(), b.type(), b.normalize(), b.stride(), b.offset());
-        };
+        // return function(b) {
+        //     c.bindBuffer(c.ARRAY_BUFFER, b.buffer());
+        //     c.enableVertexAttribArray(index);
+        //     c.vertexAttribPointer(
+        //         index, b.numComponents(), b.type(), b.normalize(), b.stride(), b.offset());
+        // };
     }
 
     var numAttribs = c.getProgramParameter(program, c.ACTIVE_ATTRIBUTES);
@@ -40,6 +40,7 @@ function G3Program(c, vs, fs) {
             name = name.substr(0, name.length - 3);
         }
         var index = c.getAttribLocation(program, info.name);
+        c.enableVertexAttribArray(index);
         this.attribLocs[name] = c.getAttribLocation(program, name);
         this.attribs[name] = createAttribSetter(info, index);
     }
@@ -169,7 +170,7 @@ function G3Program(c, vs, fs) {
         name = b.name || name;
         c.bindBuffer(b.buffer_type, b.buffer);
         if (b.buffer_type == c.ARRAY_BUFFER) {
-            c.vertexAttribPointer(this.attribLocs[name], b.stride, b.element_type, false, 0, 0);
+            c.vertexAttribPointer(this.attribLocs[name], b.isize, b.element_type, false, 0, 0);
         }
     }
 
