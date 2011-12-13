@@ -8,6 +8,227 @@
 <script type="text/javascript" src="webgl-utils.js"></script>
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+<script id="multitextured-shader-vs" type="x-shader/x-vertex">
+
+attribute vec3 aVertexPosition;
+attribute vec3 aVertexNormal;
+attribute vec2 aTextureCoord;
+
+uniform mat4 uMVMatrix;
+uniform mat4 uPMatrix;
+uniform mat3 uNMatrix;
+
+varying vec3 vTransformedNormal;
+varying vec3 vNormal;
+varying vec3 vPosition;
+varying vec2 vTextureCoord;
+
+void main(void)
+{
+    vPosition = vec3(uMVMatrix * vec4(aVertexPosition, 1.0));
+    vTransformedNormal = uNMatrix * aVertexNormal;
+    vTextureCoord = aTextureCoord;
+    vNormal = aVertexNormal;
+    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+}
+
+</script>
+
+    <script id="multitextured-shader-fs" type="x-shader/x-fragment">
+
+#ifdef GL_ES
+precision highp float;
+#endif
+
+uniform mat4 uMVMatrix;
+uniform mat4 uCamMatrix;
+uniform mat4 uPMatrix;
+uniform mat3 uNMatrix;
+
+varying vec3 vTransformedNormal;
+varying vec3 vNormal;
+varying vec3 vPosition;
+varying vec2 vTextureCoord;
+
+uniform vec3 uAmbientColor;
+uniform float uFogStart;
+uniform float uFogEnd;
+uniform vec4 uFogColor;
+
+uniform float uMaterialShininess;
+
+uniform vec3 uPointLightingLocation;
+uniform vec3 uPointLightingSpecularColor;
+uniform vec3 uPointLightingDiffuseColor;
+
+uniform sampler2D uSampler;
+uniform sampler2D uSamplerMarkings;
+
+void main(void) {
+    vec3 plpos = vec3(uCamMatrix * vec4(uPointLightingLocation, 1.0));
+    //vec3 plpos = uPointLightingLocation;
+
+    vec3 L = normalize(plpos - vPosition);
+    vec3 N = normalize(vTransformedNormal.xyz);
+
+    vec3 lightWeighting;
+    vec3 E = normalize(-vPosition);
+    vec3 R = normalize(-reflect(L, N));
+
+    float z = gl_FragCoord.z / gl_FragCoord.w;
+    float fogFactor = (uFogEnd - z) * (1.0 / (uFogEnd - uFogStart));
+    fogFactor = clamp(fogFactor, 0.0, 1.0);
+
+    vec4 Iamb = vec4(uAmbientColor, 1.0);
+    vec4 Idiff = vec4(uPointLightingDiffuseColor, 1.0) * max(dot(L,N), 0.0);
+    Idiff = clamp(Idiff, 0.0, 1.0);
+    vec4 Ispec = vec4(uPointLightingSpecularColor, 1.0) * pow(max(dot(R,E),0.0),0.3*uMaterialShininess);
+    Ispec = clamp(Ispec, 0.0, 1.0);
+    vec4 fragmentColor = texture2D(uSampler, vec2(vTextureCoord.s, 1.0 - vTextureCoord.t));
+    vec4 markingColor = texture2D(uSamplerMarkings, vec2(vTextureCoord.s, 1.0 - vTextureCoord.t));
+
+    fragmentColor = vec4(mix(fragmentColor.xyz, markingColor.xyz, clamp(markingColor.x, 0.0, 0.7)), 1.0);
+
+    vec4 fragColor = vec4(fragmentColor.rgb * vec3( Iamb +
+                                                    Idiff +
+                                                    Ispec ), fragmentColor.a);
+
+    gl_FragColor = mix(uFogColor, fragColor, fogFactor );
+
+}
+
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script id="textured-shader-vs" type="x-shader/x-vertex">
+
+attribute vec3 aVertexPosition;
+attribute vec3 aVertexNormal;
+attribute vec2 aTextureCoord;
+
+uniform mat4 uMVMatrix;
+uniform mat4 uPMatrix;
+uniform mat3 uNMatrix;
+
+varying vec3 vTransformedNormal;
+varying vec3 vNormal;
+varying vec3 vPosition;
+varying vec2 vTextureCoord;
+
+void main(void)
+{
+    vPosition = vec3(uMVMatrix * vec4(aVertexPosition, 1.0));
+    vTransformedNormal = uNMatrix * aVertexNormal;
+    vTextureCoord = aTextureCoord;
+    vNormal = aVertexNormal;
+    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+}
+
+</script>
+
+    <script id="textured-shader-fs" type="x-shader/x-fragment">
+
+#ifdef GL_ES
+precision highp float;
+#endif
+
+uniform mat4 uMVMatrix;
+uniform mat4 uCamMatrix;
+uniform mat4 uPMatrix;
+uniform mat3 uNMatrix;
+
+varying vec3 vTransformedNormal;
+varying vec3 vNormal;
+varying vec3 vPosition;
+varying vec2 vTextureCoord;
+
+uniform vec3 uAmbientColor;
+uniform float uFogStart;
+uniform float uFogEnd;
+uniform vec4 uFogColor;
+
+uniform float uMaterialShininess;
+
+uniform vec3 uPointLightingLocation;
+uniform vec3 uPointLightingSpecularColor;
+uniform vec3 uPointLightingDiffuseColor;
+
+uniform sampler2D uSampler;
+
+void main(void) {
+    vec3 plpos = vec3(uCamMatrix * vec4(uPointLightingLocation, 1.0));
+    //vec3 plpos = uPointLightingLocation;
+
+    vec3 L = normalize(plpos - vPosition);
+    vec3 N = normalize(vTransformedNormal.xyz);
+
+    vec3 lightWeighting;
+    vec3 E = normalize(-vPosition);
+    vec3 R = normalize(-reflect(L, N));
+
+    float z = gl_FragCoord.z / gl_FragCoord.w;
+    float fogFactor = (uFogEnd - z) * (1.0 / (uFogEnd - uFogStart));
+    fogFactor = clamp(fogFactor, 0.0, 1.0);
+
+    vec4 Iamb = vec4(uAmbientColor, 1.0);
+    vec4 Idiff = vec4(uPointLightingDiffuseColor, 1.0) * max(dot(L,N), 0.0);
+    Idiff = clamp(Idiff, 0.0, 1.0);
+    vec4 Ispec = vec4(uPointLightingSpecularColor, 1.0) * pow(max(dot(R,E),0.0),0.3*uMaterialShininess);
+    Ispec = clamp(Ispec, 0.0, 1.0);
+    vec4 fragmentColor = texture2D(uSampler, vec2(vTextureCoord.s, 1.0 - vTextureCoord.t));
+    vec4 fragColor = vec4(fragmentColor.rgb * vec3( Iamb +
+                                                    Idiff +
+                                                    Ispec ), fragmentColor.a);
+
+    gl_FragColor = mix(uFogColor, fragColor, fogFactor );
+
+}
+
+</script>
+
+
+
+
+
+
+
 <script id="colored-shader-vs" type="x-shader/x-vertex">
 
 attribute vec3 aVertexPosition;
@@ -59,32 +280,38 @@ uniform vec3 uPointLightingSpecularColor;
 uniform vec3 uPointLightingDiffuseColor;
 
 
-
 void main(void) {
     vec3 plpos = vec3(uCamMatrix * vec4(uPointLightingLocation, 1.0));
     //vec3 plpos = uPointLightingLocation;
 
+    vec3 L = normalize(plpos - vPosition);
+    vec3 N = normalize(vTransformedNormal.xyz);
+
     vec3 lightWeighting;
-    vec3 N = vNormal;
-    vec3 L = normalize(vPosition - plpos);
     vec3 E = normalize(-vPosition);
     vec3 R = normalize(-reflect(L, N));
 
     vec4 Iamb = vec4(uAmbientColor, 1.0);
 
     //calculate Diffuse Term:
-    vec4 Idiff = vec4(uPointLightingDiffuseColor, 1.0) * max(dot(N,L), 0.0);
+    vec4 Idiff = vec4(uPointLightingDiffuseColor, 1.0) * max(dot(L,N), 0.0);
     Idiff = clamp(Idiff, 0.0, 1.0);
 
-    float shininess = 0.01;
+    float shininess = uMaterialShininess;
     // calculate Specular Term:
     vec4 Ispec = vec4(uPointLightingSpecularColor, 1.0) * pow(max(dot(R,E),0.0),0.3*shininess);
     Ispec = clamp(Ispec, 0.0, 1.0);
 
     vec4 fragmentColor;
     fragmentColor = vColor;
-
-    gl_FragColor = vec4(fragmentColor.rgb * vec3(Iamb + Idiff), fragmentColor.a);
+    //gl_FragColor = fragmentColor;
+    gl_FragColor = vec4(fragmentColor.rgb * vec3(
+        vec4(0.0, 0.0, 0.0, 0.0) +
+            Iamb +
+            Idiff +
+            Ispec +
+            vec4(0.0, 0.0, 0.0, 0.0)
+    ), fragmentColor.a);
 }
 
 </script>
@@ -136,7 +363,7 @@ varying vec2 vTextureCoord;
 uniform sampler2D uSampler;
 
 void main(void) {
-    gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+    gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, 1.0 - vTextureCoord.t));
 }
 
 </script>
@@ -152,12 +379,24 @@ void main(void) {
 
 </head>
 
+<script type="text/javascript">
+    var b = false;
+    function toggleField() {
+        if (b) {
+            field_model.textures = [field_tex, marking_tex];
+        } else {
+            field_model.textures = [field2_tex, marking_tex];
+        }
+        b = !b;
+    }
+</script>
 
 <body onload="webGLStart();">
     <canvas id="lesson01-canvas" style="border: none;" width="800" height="500"></canvas>
     <br/>
     <span id="xpos"></span> <span id="ypos"></span> <span id="zpos"></span> <br/>
     <span id="yaw"></span> <span id="pitch"></span>
+    <span id="toggle" onclick="toggleField()">Toggle</span>
 </body>
 
 </html>

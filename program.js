@@ -1,4 +1,5 @@
-function G3Program(c, vs, fs) {
+function G3Program(c, name, vs, fs) {
+    G3World.programs[name] = this;
     var self = this;
     var fragmentShader = getShader(gl, fs);
     var vertexShader = getShader(gl, vs);
@@ -40,11 +41,9 @@ function G3Program(c, vs, fs) {
             name = name.substr(0, name.length - 3);
         }
         var index = c.getAttribLocation(program, info.name);
-        c.enableVertexAttribArray(index);
         this.attribLocs[name] = c.getAttribLocation(program, name);
         this.attribs[name] = createAttribSetter(info, index);
     }
-
 
     var textureUnit = 0;
     function createUniformSetter(info) {
@@ -90,7 +89,7 @@ function G3Program(c, vs, fs) {
                 return function(units) {
                     return function(v) {
                         c.uniform1iv(loc, units);
-                        v.bindToUnit(units);
+                        v.activate(units);
                     };
                 }(units);
             }
@@ -132,7 +131,7 @@ function G3Program(c, vs, fs) {
                 return function(unit) {
                     return function(v) {
                         c.uniform1i(loc, unit);
-                        v.bindToUnit(unit);
+                        v.activate(unit);
                     };
                 }(textureUnit++);
             }
@@ -140,6 +139,9 @@ function G3Program(c, vs, fs) {
         }
     }
 
+    var validate = function() {
+        assert(c.getParameter(c.CURRENT_PROGRAM) == program, "wrong program!");
+    };
 
     var numUniforms = c.getProgramParameter(program, c.ACTIVE_UNIFORMS);
     for (var ii = 0; ii < numUniforms; ++ii) {
@@ -152,6 +154,12 @@ function G3Program(c, vs, fs) {
             name = name.substr(0, name.length - 3);
         }
         var settr = createUniformSetter(info);
+        // settr = function(settrx) {
+        //     return function(xx) {
+        //         validate();
+        //         return settrx(xx);
+        //     }
+        // }(settr);
         this.uniformLocs[name] = c.getUniformLocation(program, name);
         this.uniforms[name] = settr;
         if (info.type == c.SAMPLER_2D || info.type == c.SAMPLER_CUBE) {
@@ -166,11 +174,21 @@ function G3Program(c, vs, fs) {
         }
     }
 
+    this.setTexture = function(tex, name) {
+        name = name || tex.name;
+        var settr = this.textures[name];
+        if (settr) {
+            settr(tex);
+        }
+    }
+
     this.setAttribBuffer = function(b, name) {
         name = b.name || name;
-        c.bindBuffer(b.buffer_type, b.buffer);
-        if (b.buffer_type == c.ARRAY_BUFFER) {
-            c.vertexAttribPointer(this.attribLocs[name], b.isize, b.element_type, false, 0, 0);
+        var index = this.attribLocs[name];
+        if (index !== undefined) {
+            c.enableVertexAttribArray(index);
+            c.bindBuffer(b.buffer_type, b.buffer);
+            c.vertexAttribPointer(index, b.isize, b.element_type, false, 0, 0);
         }
     }
 
