@@ -76,8 +76,8 @@ function G3Model (c, program, vertices, colors) {
     this.render = function(p) {
         p = p || program;
         p.use();
-        p.setAttrib("aVertexPosition", this.buffer, this.buffer.itemSize, c.FLOAT);
-        p.setAttrib("aVertexColor", this.colors, this.colors.itemSize, c.FLOAT);
+        p.setAttribBuffer("aVertexPosition", this.buffer, this.buffer.itemSize, c.FLOAT);
+        p.setAttribBuffer("aVertexColor", this.colors, this.colors.itemSize, c.FLOAT);
 
         c.drawArrays(c.TRIANGLE_STRIP, 0, this.buffer.numItems);
     }
