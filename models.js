@@ -73,10 +73,11 @@ function G3Model (c, program, vertices, colors) {
 
     this.setColors(colors);
 
-    this.render = function() {
-        program.use();
-        program.setAttrib("aVertexPosition", this.buffer, this.buffer.itemSize, c.FLOAT);
-        program.setAttrib("aVertexColor", this.colors, this.colors.itemSize, c.FLOAT);
+    this.render = function(p) {
+        p = p || program;
+        p.use();
+        p.setAttrib("aVertexPosition", this.buffer, this.buffer.itemSize, c.FLOAT);
+        p.setAttrib("aVertexColor", this.colors, this.colors.itemSize, c.FLOAT);
 
         c.drawArrays(c.TRIANGLE_STRIP, 0, this.buffer.numItems);
     }
@@ -128,20 +129,21 @@ function G3FileModel(c, program) {
 
         this.prepared = true;
     }
-    this.render = function() {
-        program.use();
+    this.render = function(p) {
+        p = p || program;
+        p.use();
 
-        program.setAttribBuffer(this.vertexes_buf);
-        program.setAttribBuffer(this.normals_buf);
+        p.setAttribBuffer(this.vertexes_buf);
+        p.setAttribBuffer(this.normals_buf);
 
         if (this.texture) {
-            program.setAttribBuffer(this.texture);
-            program.setAttribBuffer(this.texture_coords_buf);
+            p.setAttribBuffer(this.texture);
+            p.setAttribBuffer(this.texture_coords_buf);
         } else {
-            program.setAttribBuffer(this.colors_buf);
+            p.setAttribBuffer(this.colors_buf);
         }
 
-        program.render(this.indexes_buf);
+        p.render(this.indexes_buf);
     }
 }
 
@@ -156,10 +158,11 @@ function G3ComplexModel(c, program) {
             this.models[i].prepareBuffers();
         }
     };
-    this.render = function() {
-        program.use();
+    this.render = function(p) {
+        p = p || program
+        p.use();
         for (var i = 0; i < this.models.length-1; i++) {
-            this.models[i].render();
+            this.models[i].render(p);
         }
     };
 }
@@ -247,13 +250,14 @@ function G3MeshModel(c, program) {
     this.prepare = function() { this.mesh.prepare();
                                 this.texture.prepare(); };
 
-    this.render = function() {
-        program.use();
+    this.render = function(p) {
+        p = p || program;
+        p.use();
 
         if (this.texture) {
-            program.setTexture(this.texture);
+            p.setTexture(this.texture);
         }
-        this.mesh.render(program);
+        this.mesh.render(p);
     }
 }
 
@@ -331,26 +335,27 @@ function G3TriangleModel(c, program) {
         this.prepared = true;
     }
 
-    this.render = function() {
+    this.render = function(p) {
         if (!this.prepared) {
             this.prepareBuffers();
         }
-        program.use()
-        program.setUniform("uMaterialShininess", this.shininess);
-        program.setAttribBuffer(this.vertexes_buf);
-        program.setAttribBuffer(this.normals_buf);
+        p = p || program;
+        p.use()
+        p.setUniform("uMaterialShininess", this.shininess);
+        p.setAttribBuffer(this.vertexes_buf);
+        p.setAttribBuffer(this.normals_buf);
 
-        program.use();
+        p.use();
 
         if (this.textures) {
             for (var i = 0; i < this.textures.length; i++) {
-                program.setTexture(this.textures[i]);
+                p.setTexture(this.textures[i]);
             }
-            program.setAttribBuffer(this.texture_coords_buf);
+            p.setAttribBuffer(this.texture_coords_buf);
          } else {
-            program.setAttribBuffer(this.colors_buf);
+            p.setAttribBuffer(this.colors_buf);
         }
-        program.render(this.indexes_buf);
+        p.render(this.indexes_buf);
     }
 
     this.setColor = function() {
