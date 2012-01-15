@@ -369,6 +369,205 @@ void main(void) {
 </script>
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script type="glsl" id="showDepth.vert">
+	attribute vec4 position;
+	attribute vec3 normal;
+	attribute vec2 texCoord;
+
+	uniform mat4 projectionMatrix;
+	uniform mat4 modelViewMatrix;
+	uniform mat4 normalMatrix;
+	uniform float near;
+	uniform float far;
+
+	varying vec3 vN;
+	varying vec2 vTexCoord;
+	varying float depth;
+	varying vec4 vVSPos;
+	void main() {
+		gl_Position = projectionMatrix * modelViewMatrix * position;
+		vN = normalize((normalMatrix * vec4(normal, 1.0)).xyz);
+
+		//linear depth in camera space (0..far)
+		depth = (modelViewMatrix * position).z/far;
+
+	   	vTexCoord = texCoord;
+		vVSPos = modelViewMatrix * position;
+	}
+
+</script>
+<script type="glsl" id="showDepth.frag">
+	#ifdef GL_ES
+	precision highp float;
+	#endif
+	uniform float near;
+	uniform float far;
+
+	varying float depth;
+	varying vec3 vN;
+	varying vec4 vVSPos;
+
+	//from http://spidergl.org/example.php?id=6
+	vec4 packDepth(const in float depth) {
+		const vec4 bit_shift = vec4(256.0*256.0*256.0, 256.0*256.0, 256.0, 1.0);
+		const vec4 bit_mask  = vec4(0.0, 1.0/256.0, 1.0/256.0, 1.0/256.0);
+		vec4 res = fract(depth * bit_shift);
+		res -= res.xxyz * bit_mask;
+		return res;
+	}
+
+	void main() {
+		gl_FragData[0] = packDepth(-depth);
+		gl_FragData[0].r = -depth/far;
+	}
+</script>
+<script type="glsl" id="ssao.vert">
+	attribute vec4 position;
+	attribute vec3 normal;
+	attribute vec2 texCoord;
+
+	uniform mat4 projectionMatrix;
+	uniform mat4 modelViewMatrix;
+	uniform mat4 normalMatrix;
+
+	varying vec3 vNormal;
+	varying vec2 vTexCoord;
+
+	void main() {
+		gl_Position = projectionMatrix * modelViewMatrix * position;
+		vNormal = (normalMatrix * vec4(normal, 1.0)).xyz;
+	   	vTexCoord = texCoord;
+	}
+</script>
+<script type="glsl" id="ssao.frag">
+	uniform sampler2D depthTex;
+	uniform sampler2D noiseTex;
+	varying vec3 vNormal;
+	uniform mat4 projectionMatrix;
+	uniform mat4 m;
+	uniform vec2 noiseScale;
+	uniform float near;
+	uniform float far;
+	uniform float fov;
+	uniform float aspectRatio;
+	uniform vec3 kernel[16];
+
+	varying vec2 vTexCoord;
+
+	const int kernelSize = 16;
+	const float radius = 0.1;
+
+	float unpackDepth(const in vec4 rgba_depth) {
+		const vec4 bit_shift = vec4(1.0/(256.0*256.0*256.0), 1.0/(256.0*256.0), 1.0/256.0, 1.0);
+                float depth = dot(rgba_depth, bit_shift);
+                return depth;
+        }
+
+        vec3 getViewRay(vec2 tc) {
+                float hfar = 2.0 * tan(fov/2.0) * far;
+                float wfar = hfar * aspectRatio;
+                vec3 ray = vec3(wfar * (tc.x - 0.5), hfar * (tc.y - 0.5), -far);
+                return ray;
+        }
+
+        //linear view space depth
+        float getDepth(vec2 coord) {
+                return unpackDepth(texture2D(depthTex, coord.xy));
+        }
+
+        void main() {
+                vec2 screenPos = vec2(gl_FragCoord.x / 1024.0, gl_FragCoord.y / 512.0);
+                //screenPos.y = 1.0 - screenPos.y;
+
+
+                float linearDepth = getDepth(screenPos);
+                vec3 origin = getViewRay(screenPos) * linearDepth;
+
+                vec3 normal = normalize(vNormal);
+
+                vec3 rvec = texture2D(noiseTex, screenPos.xy * noiseScale).xyz * 2.0 - 1.0;
+            vec3 tangent = normalize(rvec - normal * dot(rvec, normal));
+            vec3 bitangent = cross(normal, tangent);
+                mat3 tbn = mat3(tangent, bitangent, normal);
+
+                float occlusion = 0.0;
+                for(int i = 0; i < kernelSize; ++i) {
+                        vec3 sample = origin + (tbn * kernel[i]) * radius;
+                    vec4 offset = projectionMatrix * vec4(sample, 1.0);
+                        offset.xy /= offset.w;
+                        offset.xy = offset.xy * 0.5 + 0.5;
+                    float sampleDepth = -sample.z/far;
+                        float depthBufferValue = getDepth(offset.xy);
+                        float range_check = abs(linearDepth - depthBufferValue);
+                        if (range_check < radius && depthBufferValue <= sampleDepth) {
+                                occlusion +=  1.0;
+                        }
+
+                }
+
+                occlusion = 1.0 - occlusion / float(kernelSize);
+
+                vec3 lightPos = vec3(10.0, 10.0, 10.0);
+        vec3 L = normalize(lightPos);
+                float NdotL = abs(dot(normal, L));
+                vec3 diffuse = vec3(NdotL);
+                vec3 ambient = vec3(1.0);
+            gl_FragColor.rgb = vec3((diffuse*0.2 + ambient*0.8) * occlusion);
+                //gl_FragColor.rgb = normal;
+            gl_FragColor.a = 1.0;
+        }
+</script>
+<script type="glsl" id="blur.frag">
+        uniform sampler2D colorTex;
+        uniform vec2 texelSize;
+        varying vec2 vTexCoord;
+
+        void main() {
+                vec3 result = vec3(0.0);
+                for (int i = 0; i < 4; ++i) {
+                        for (int j = 0; j < 4; ++j) {
+                                vec2 offset = vec2(texelSize.x * float(j), texelSize.y * float(i));
+                                result += texture2D(colorTex, vTexCoord + offset).rgb;
+                        }
+                }
+
+                gl_FragColor.rgb = vec3(result * 0.0625);
+                gl_FragColor.a = 1.0;
+        }
+</script>
+<script type="glsl" id="baseTexture.frag">
+        uniform sampler2D diffuseTex;
+        varying vec2 vTexCoord;
+
+        void main() {
+                gl_FragColor.rgba = texture2D(diffuseTex, vTexCoord);
+                gl_FragColor.a = 1.0;
+        }
+</script>
+
+
+
+
+
+
+
+
+
 <script type="text/javascript" src="util.js"></script>
 <script type="text/javascript" src="buffer.js"></script>
 <script type="text/javascript" src="program.js"></script>
