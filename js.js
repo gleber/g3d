@@ -214,11 +214,13 @@ function ensureProjection(program, mv) {
     G3World.setUniform("uNMatrix", normalMatrix);
 }
 
-function drawScene() {
-    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+function drawScene(width, height, f) {
+    width = width || gl.viewportWidth;
+    height = height || gl.viewportHeight;
+    gl.viewport(0, 0, width, height);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 2000.0, pMatrix);
+    mat4.perspective(45, width / height, 0.1, 2000.0, pMatrix);
 
     G3World.mv.push();
 
@@ -264,6 +266,9 @@ function drawScene() {
     }
 
     G3World.mv.pop();
+    if (f) {
+	f();
+    }
 }
 
 
@@ -286,6 +291,7 @@ function webGLStart() {
 
 function tick() {
     requestAnimFrame(tick);
+    
     drawScene();
     handleKeys();
     animate();
