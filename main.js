@@ -24,113 +24,18 @@ function initGL(canvas) {
 
 
 function initShaders() {
-    new G3Program(gl, "colored", "colored-shader-vs", "colored-shader-fs");
-    new G3Program(gl, "multitextured", "multitextured-shader-vs", "multitextured-shader-fs");
-    new G3Program(gl, "textured", "textured-shader-vs", "textured-shader-fs");
-    new G3Program(gl, "skysphere", "skysphere-vs", "skysphere-fs");
+    // new G3Program(gl, "colored", "colored-shader-vs", "colored-shader-fs");
+    new G3Program(gl, "solid-color", "solid-color-shader-vs", "solid-color-shader-fs");
+    // new G3Program(gl, "multitextured", "multitextured-shader-vs", "multitextured-shader-fs");
+    // new G3Program(gl, "textured", "textured-shader-vs", "textured-shader-fs");
+    // new G3Program(gl, "skysphere", "skysphere-vs", "skysphere-fs");
 }
 
 
 var pMatrix = mat4.create();
 
-var G3World = {};
-G3World.programs = {};
-G3World.setUniform = function(name, value) {
-    for (var n in G3World.programs) {
-        if (G3World.programs[n].uniformLocs[name]) {
-            G3World.programs[n].use();
-            G3World.programs[n].setUniform(name, value);
-        }
-    }
-}
-
-G3World.setUniforms = function(uns) {
-    for (var n in G3World.programs) {
-        var prog = G3World.programs[n];
-        var set = false;
-        for (var name in uns) {
-            var value = uns[name];
-            if (prog.uniformLocs[name]) {
-                if (!set) {
-                    prog.use();
-                    set = true;
-                }
-                prog.setUniform(name, value);
-            }
-        }
-    }
-}
-
-G3World.statics = [];
-G3World.objects = [];
-G3World.mv = {'current': mat4.create(),
-              'stack': []};
-mat4.identity(G3World.mv.current);
-G3World.mv.push = function() {
-    var copy = mat4.create();
-    mat4.set(G3World.mv.current, copy);
-    G3World.mv.stack.push(copy);
-};
-G3World.mv.pop = function() {
-    if (G3World.mv.stack.length == 0) {
-        throw "Invalid popMatrix!";
-    }
-    G3World.mv.current = G3World.mv.stack.pop();
-};
-
 // -4 18 14
 // -17 -48
-
-G3World.camera = {'x': -4,
-                  'y': 18,
-                  'z': 14,
-                  'yaw': -17,
-                  'pitch': -48,
-
-                  'yawSpeed': 0,
-                  'pitchSpeed': 0,
-                  'speed': 0,
-
-                  'xSpeed': 0,
-                  'zSpeed': 0,
-                  'ySpeed': 0};
-
-function G3Object(c, program, vertices, colors) {
-    this.program = program;
-    this.pos = mat4.create();
-
-    this.setModel = function(model) {
-        this.model = model;
-        if (!program && model.program) {
-            this.program = model.program;
-        }
-    }
-
-    if (program && vertices) {
-        this.setModel(new G3Model(c, program, vertices, colors));
-    }
-    mat4.identity(this.pos);
-
-    this.render = function() {
-        this.model.render();
-    };
-
-    this.translate = function(v) {
-        mat4.translate(this.pos, v);
-    };
-
-    this.rotate = function(xRot, yRot, zRot) {
-        mat4.rotate(this.pos, degToRad(xRot), [1, 0, 0]);
-        mat4.rotate(this.pos, degToRad(yRot), [0, 1, 0]);
-        mat4.rotate(this.pos, degToRad(zRot), [0, 0, 1]);
-    };
-
-    this.scale = function(xScale, yScale, zScale) {
-        yScale = yScale || xScale;
-        zScale = zScale || xScale;
-        mat4.scale(this.pos, [xScale, yScale, zScale]);
-    };
-}
 
 var field_model;
 var field_tex;
@@ -142,29 +47,19 @@ function initBuffers() {
     var green = [0,1,0,1];
     var blue  = [0,0,1,1];
 
-    field_model = new G3TriangleModel(gl, G3World.programs["multitextured"]);
-    field_model.addSquare([ [ 1.0,  1.0,  0.0],
-                            [-1.0,  1.0,  0.0],
-                            [-1.0, -1.0,  0.0],
-                            [ 1.0, -1.0,  0.0] ], green, [0, 0, 1]);
-
-    field_model.shininess = 1000.0;
-    field_model.texture_coords = [0.0, 0.0,
-                                  1.0, 0.0,
-                                  1.0, 1.0,
-                                  0.0, 1.0];
-    field_tex = new G3Texture(gl, "uSampler", "grass.jpg", green);
-    field2_tex = new G3Texture(gl, "uSampler", "grass2.jpg", green);
-    marking_tex = new G3Texture(gl, "uSamplerMarkings", "soccer2.png", green);
-    field_model.addTexture(field_tex);
-    field_model.addTexture(marking_tex);
-
-    var field = new G3Object(gl);
-    field.setModel(field_model);
-    field.rotate(-90, 0, 0);
-    field.scale(10.65, 7.15, 1);
-
-
+    var spm = new G3Mesh(gl);
+    spm.setSphere(10);
+    var spmm = new G3MeshModel(gl, G3World.programs["solid-color"]);
+    spmm.setMesh(spm);
+    for (var i = 0; i < 1; i++) {
+        var x = (Math.random() - 0.5) * 2.0;
+        var y = (Math.random() - 0.5) * 2.0;
+        var z = (Math.random() - 0.5) * 2.0;
+        var spo = new G3Object(gl);
+        spo.setModel(spmm);
+        spo.translate(x, y, z);
+        G3World.objects.push(spo);
+    }
 
     // var bramka = new G3TriangleModel(gl, G3World.programs["colored"]);
 
@@ -195,13 +90,6 @@ function initBuffers() {
     // bramka2.rotate(0, 90, 0);
     // bramka2.scale(2, 1, 0.1);
 
-    var skysphere_mod = new Skysphere(gl, "gigapixel-milky-way.gif")
-    var skysphere = new G3Object(gl);
-    skysphere.setModel(skysphere_mod);
-    skysphere.scale(83.57887771204935);
-
-    G3World.statics.push(skysphere);
-    G3World.objects.push(field);
     // G3World.objects.push(bramka1);
     // G3World.objects.push(bramka2);
 }
@@ -227,47 +115,24 @@ function drawScene(width, height, f) {
     mat4.rotate(G3World.mv.current, degToRad(-G3World.camera.pitch), [1, 0, 0]);
     mat4.rotate(G3World.mv.current, degToRad(-G3World.camera.yaw), [0, 1, 0]);
 
-    var camRotation = mat4.create();
-    mat4.set(G3World.mv.current, camRotation);
-
-    mat4.translate(G3World.mv.current, [-G3World.camera.x, -G3World.camera.y, -G3World.camera.z]);
-
     var lightingDirection = [-0.25, -0.25, -1];
     var adjustedLD = vec3.create();
     vec3.normalize(lightingDirection, adjustedLD);
     vec3.scale(adjustedLD, -1);
 
-    G3World.setUniforms({"uPMatrix": pMatrix,
-                         "uCamMatrix": G3World.mv.current,
-                         "uFogStart": 80.0,
-                         "uFogEnd": 100.0,
-                         "uFogColor": [0.0, 0.0, 0.0, 1.0],
-                         "uAmbientColor": [0.2, 0.2, 0.2],
-                         "uPointLightingLocation": [0, 1, 0],
-                         "uPointLightingDiffuseColor": [ 1, 1, 1],
-                         "uPointLightingSpecularColor": [ 2, 2, 2]});
+    var camRotation = mat4.create();
+    mat4.set(G3World.mv.current, camRotation);
 
-    for (var i = 0; i < G3World.statics.length; i++) {
-        o = G3World.statics[i];
-        mat4.multiply(camRotation, o.pos);
-        ensureProjection(o.program, camRotation);
-        G3World.setUniform("uMVMatrix", camRotation);
-        o.render();
-    }
+    mat4.translate(G3World.mv.current, [-G3World.camera.x, -G3World.camera.y, -G3World.camera.z]);
 
-    for (var i = 0; i < G3World.objects.length; i++) {
-        o = G3World.objects[i];
-        G3World.mv.push();
-        mat4.multiply(G3World.mv.current, o.pos);
-        ensureProjection(o.program);
-        G3World.setUniform("uMVMatrix", G3World.mv.current);
-        o.render();
-        G3World.mv.pop();
-    }
+    G3World.setUniform("uPMatrix", pMatrix);
+
+    G3World.render(camRotation);
 
     G3World.mv.pop();
+
     if (f) {
-	f();
+        f();
     }
 }
 
@@ -291,7 +156,7 @@ function webGLStart() {
 
 function tick() {
     requestAnimFrame(tick);
-    
+
     drawScene();
     handleKeys();
     animate();

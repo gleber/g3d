@@ -4,8 +4,8 @@
 <title>WebGL field</title>
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
 
-<script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
-<script type="text/javascript" src="webgl-utils.js"></script>
+<script type="text/javascript" src="lib/glMatrix-0.9.5.min.js"></script>
+<script type="text/javascript" src="lib/webgl-utils.js"></script>
 
 
 
@@ -316,7 +316,59 @@ void main(void) {
 
 </script>
 
+<script id="solid-color-shader-vs" type="x-shader/x-vertex">
 
+attribute vec3 aVertexPosition;
+attribute vec3 aVertexNormal;
+attribute vec4 aVertexColor;
+
+uniform mat4 uMVMatrix;
+uniform mat4 uPMatrix;
+uniform mat3 uNMatrix;
+uniform vec4 uColor;
+
+varying vec3 vTransformedNormal;
+varying vec3 vNormal;
+varying vec3 vPosition;
+
+void main(void)
+{
+    vPosition = vec3(uMVMatrix * vec4(aVertexPosition, 1.0));
+    vTransformedNormal = uNMatrix * aVertexNormal;
+    vNormal = aVertexNormal;
+    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+}
+
+</script>
+
+    <script id="solid-color-shader-fs" type="x-shader/x-fragment">
+
+#ifdef GL_ES
+precision highp float;
+#endif
+
+uniform vec4 uColor;
+
+void main(void) {
+    gl_FragColor = uColor;
+}
+
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
 
 
 
@@ -568,13 +620,17 @@ void main(void) {
 
 
 
-<script type="text/javascript" src="util.js"></script>
-<script type="text/javascript" src="buffer.js"></script>
-<script type="text/javascript" src="program.js"></script>
-<script type="text/javascript" src="models.js"></script>
-<script type="text/javascript" src="skysphere.js"></script>
-<script type="text/javascript" src="fbo.js"></script>
-<script type="text/javascript" src="js.js"></script>
+<script type="text/javascript" src="lib/util.js"></script>
+<script type="text/javascript" src="lib/world.js"></script>
+<script type="text/javascript" src="lib/object.js"></script>
+<script type="text/javascript" src="lib/mesh.js"></script>
+<script type="text/javascript" src="lib/texture.js"></script>
+<script type="text/javascript" src="lib/material.js"></script>
+<script type="text/javascript" src="lib/buffer.js"></script>
+<script type="text/javascript" src="lib/program.js"></script>
+<script type="text/javascript" src="lib/models.js"></script>
+<script type="text/javascript" src="lib/fbo.js"></script>
+<script type="text/javascript" src="main.js"></script>
 
 
 </head>
