@@ -59,7 +59,7 @@ function initScene() {
     var spmm = new G3MeshModel(gl, G3World.programs["solid-color"]);
     spmm.material.uniforms["uColor"] = green;
     spmm.setMesh(spm);
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < 10; i++) {
         var x = (Math.random() - 0.5) * 5.0;
         var y = (Math.random() - 0.5) * 5.0;
         var z = (Math.random() - 0.5) * 5.0;
@@ -136,7 +136,8 @@ function tick() {
     requestAnimFrame(tick);
 
     ssao.renderDepth(drawScene);
-    drawScene();
+    ssao.perform(drawScene);
+    // drawScene();
     handleKeys();
     animate();
 
