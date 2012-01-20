@@ -67,7 +67,7 @@ function initScene() {
         spo.setModel(spmm);
         spo.animation = new G3WaveAnimation(gl);
         spo.animation.setPhase(Math.random() * 3);
-        spo.animation.setScale(0.5);
+        spo.animation.setScale(0.3);
         spo.translate([x, y, z]);
         spo.scale([Math.random() * 1.0 + 1.0]);
         G3World.objects.push(spo);
